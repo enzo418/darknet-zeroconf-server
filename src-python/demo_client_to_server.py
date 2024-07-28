@@ -26,7 +26,15 @@ assert DETECTION_BOX_SIZE == 24, f"DetectionBox size is not 24 bytes {DETECTION_
 
 def capture_and_send_images():
     # Initialize the camera
-    cap = cv2.VideoCapture(1)
+    import sys
+    src = 1
+    if len(sys.argv) > 1:
+        try:
+            src = int(sys.argv[1])
+        except:
+            src = sys.argv[1]
+            
+    cap = cv2.VideoCapture(src)
     if not cap.isOpened():
         print("Error: Could not open camera.")
         return
@@ -70,7 +78,7 @@ def capture_and_send_images():
             # Increment image number
             image_number += 1
             
-            if False:
+            if True:
                 print("Waiting for detection results...")
                 # Receive the DetectionResult header
                 detection_result_header = sock.recv(DETECTION_RESULT_HEADER_SIZE)

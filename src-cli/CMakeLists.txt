@@ -18,15 +18,17 @@ ENDIF ()
 
 LIST (SORT CLISRC)
 
-ADD_EXECUTABLE (server ${CLISRC} 
+ADD_EXECUTABLE (server ${CLISRC} SnowflakeGenerator_64.cpp
 					#$<TARGET_OBJECTS:darknetobjlib>
 				)
 SET_TARGET_PROPERTIES (server PROPERTIES OUTPUT_NAME "darknet_server")
 
-# NOTE: Set ASAN_OPTIONS=protect_shadow_gap=0 before running
-# 	e.g.	$ ASAN_OPTIONS=protect_shadow_gap=0 darknet_server ...
-target_compile_options(server PRIVATE -fsanitize=address)
-target_link_options(server PRIVATE -fsanitize=address)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+	# NOTE: Set ASAN_OPTIONS=protect_shadow_gap=0 before running
+	# 	e.g.	$ ASAN_OPTIONS=protect_shadow_gap=0 darknet_server ...
+	target_compile_options(server PRIVATE -fsanitize=address)
+	target_link_options(server PRIVATE -fsanitize=address)
+endif()
 
 IF (DARKNET_USE_CUDA)
 	SET_TARGET_PROPERTIES (server PROPERTIES CUDA_ARCHITECTURES "${DARKNET_CUDA_ARCHITECTURES}")
@@ -40,7 +42,6 @@ target_include_directories(server PRIVATE uSockets/src)
 
 #
 TARGET_LINK_LIBRARIES (server PRIVATE darknet ${DARKNET_LINK_LIBS} usocketslib)
-
 
 
 IF (UNIX)

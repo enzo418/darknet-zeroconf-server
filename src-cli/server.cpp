@@ -13,6 +13,8 @@
 #include <cstdlib>
 #include <thread>
 
+#include "Semaphore.hpp"
+#include "SnowflakeGenerator.hpp"
 #include "assert.h"
 #include "blas.hpp"
 #include "classifier.hpp"
@@ -27,6 +29,7 @@
 #include "option_list.hpp"
 #include "parser.hpp"
 #include "utils.hpp"
+
 const int SSL = 0;
 
 #ifdef WIN32
@@ -396,12 +399,10 @@ namespace {
 
     // socket extension
     struct detect_socket {
+        snowflake id;
         char* backpressure;
         int length;
-    };
 
-    // socket context extension
-    struct socket_detect_context {
         uint8_t* buffer;
         size_t buffer_size;
 
@@ -410,18 +411,23 @@ namespace {
         size_t bytes_received = 0;
     };
 
+    // socket context extension
+    struct socket_detect_context {};
+
     // Images received
     struct ImageReceived {
         cv::Mat img;
         uint16_t image_number;
         uint32_t group_number;
 
-        us_socket_t* s;
+        snowflake socket_id;
     };
 
     // Queue to store images received from the client
     static std::queue<ImageReceived> image_queue;
     static std::mutex image_queue_mutex;
+    static Semaphore image_queue_sem(
+        0);  // count how many images are in the queue
 
 #pragma pack(1)
     struct DetectionBoxData {
@@ -440,7 +446,7 @@ namespace {
 #pragma pack()
 
     struct ResponsePac {
-        struct us_socket_t* res_s;
+        snowflake socket_id;
         DetectionResultHeader res;
         DetectionBoxData* data;
     };
@@ -449,36 +455,41 @@ namespace {
     static std::queue<ResponsePac> detection_result_queue;
     static std::mutex detection_result_queue_mutex;
 
-    static ResponsePac g_res;
-    static int volatile g_res_ready = 0;
-    static int volatile g_sender_busy = 0;
+    static std::map<snowflake, us_socket_t*> socket_map;
+    static std::mutex socket_map_mutex;
 }  // namespace
 
 /* After an image is processed by the detect function, saves and defers the
  * detection results to be sent to the client in the server loop. */
 void on_wakeup(struct us_loop_t* loop) {
-    printf("Wakeup\n");
+    // printf("Wakeup\n");
 
     // Consume detection results and send them to the client
     while (1) {
         ResponsePac result;
 
         {
-            // std::lock_guard<std::mutex> lock(detection_result_queue_mutex);
-            // if (detection_result_queue.empty()) break;
+            std::lock_guard<std::mutex> lock(detection_result_queue_mutex);
+            if (detection_result_queue.empty()) break;
 
-            // result = detection_result_queue.front();
-            // detection_result_queue.pop();
-
-            if (!custom_atomic_load_int(&g_res_ready)) break;
-
-            result = g_res;
-            custom_atomic_store_int(&g_sender_busy, 1);
+            result = detection_result_queue.front();
+            detection_result_queue.pop();
         }
 
-        us_socket_t* s = result.res_s;
+        // Find the socket
+        us_socket_t* s = nullptr;
+        {
+            std::lock_guard<std::mutex> lock(socket_map_mutex);
+            auto it = socket_map.find(result.socket_id);
+            if (it != socket_map.end()) {
+                s = it->second;
+            }
+        }
 
-        if (!s) continue;
+        if (!s) {
+            printf("Socket (%lu) not found\n", result.socket_id);
+            continue;
+        }
 
         struct detect_socket* ds = (struct detect_socket*)us_socket_ext(SSL, s);
 
@@ -491,8 +502,8 @@ void on_wakeup(struct us_loop_t* loop) {
         memcpy(data + sizeof(DetectionResultHeader), result.data,
                result.res.num_boxes * sizeof(DetectionBoxData));
 
-        printf("Sending header (%lu) bytes + %d boxes\n",
-               sizeof(DetectionResultHeader), result.res.num_boxes);
+        // printf("Sending header (%lu) bytes + %d boxes\n",
+        //        sizeof(DetectionResultHeader), result.res.num_boxes);
 
         int written = us_socket_write(SSL, s, data, length, 0);
 
@@ -503,6 +514,8 @@ void on_wakeup(struct us_loop_t* loop) {
             free(ds->backpressure);
             ds->backpressure = new_buffer;
             ds->length += length - written;
+        } else {
+            // printf("Sent results to client (%lu)\n", result.socket_id);
         }
 
         // free buffer
@@ -510,12 +523,9 @@ void on_wakeup(struct us_loop_t* loop) {
 
         // free the boxes
         free(result.data);
-
-        custom_atomic_store_int(&g_res_ready, 0);
-        custom_atomic_store_int(&g_sender_busy, 0);
     }
 
-    printf("Wakeup done [Finished sending results]\n");
+    // printf("Wakeup done [Finished sending results]\n");
 }
 
 void* image_detect_in_thread(void* ptr) {
@@ -529,11 +539,12 @@ void* image_detect_in_thread(void* ptr) {
             this_thread_yield();
         }
 
+        image_queue_sem.acquire();
+
         ImageReceived img_received;
         {
             std::lock_guard<std::mutex> lock(image_queue_mutex);
             if (image_queue.empty()) {
-                custom_atomic_store_int(&run_image_detect_in_thread, 0);
                 continue;
             }
 
@@ -547,7 +558,7 @@ void* image_detect_in_thread(void* ptr) {
         detect(*ctx, &img_received.img, &results, num_results);
 
         ResponsePac res = {
-            .res_s = img_received.s,
+            .socket_id = img_received.socket_id,
             .res = {.group_number = img_received.group_number,
                     .image_number = img_received.image_number,
                     .num_boxes = (uint16_t)num_results},
@@ -571,14 +582,12 @@ void* image_detect_in_thread(void* ptr) {
             }
         }
 
-        custom_atomic_store_int(&run_image_detect_in_thread, 0);
-
         {
-            // std::lock_guard<std::mutex> lock(detection_result_queue_mutex);
-            // detection_result_queue.push(res);
-            g_res = res;
+            std::lock_guard<std::mutex> lock(detection_result_queue_mutex);
+            detection_result_queue.push(res);
 
-            custom_atomic_store_int(&g_res_ready, 1);
+            // printf("Detection results queued for client (%lu)\n",
+            //        img_received.socket_id);
         }
 
         us_wakeup_loop(loop);
@@ -591,9 +600,12 @@ void* image_detect_in_thread(void* ptr) {
     return 0;
 }
 
-void process_image(us_socket_t* s, uint8_t* image_data, uint32_t image_data_len,
-                   uint8_t image_type, uint16_t image_number,
-                   uint32_t group_number, uint16_t width, uint16_t height) {
+void process_image(snowflake socket_id, uint8_t* image_data,
+                   uint32_t image_data_len, uint8_t image_type,
+                   uint16_t image_number, uint32_t group_number, uint16_t width,
+                   uint16_t height) {
+    // printf("Received image from client (%lu)\n", socket_id);
+
     // printf("Decoding received image: %dx%d   n=%d   g=%d\n", width, height,
     //        image_number, group_number);
 
@@ -615,14 +627,14 @@ void process_image(us_socket_t* s, uint8_t* image_data, uint32_t image_data_len,
         img_received.img = std::move(img);
         img_received.image_number = image_number;
         img_received.group_number = group_number;
-        img_received.s = s;
+        img_received.socket_id = socket_id;
 
         {
             std::lock_guard<std::mutex> lock(image_queue_mutex);
             image_queue.push(std::move(img_received));
         }
 
-        custom_atomic_store_int(&run_image_detect_in_thread, 1);
+        image_queue_sem.release();
     }
 }
 
@@ -636,16 +648,12 @@ struct us_socket_t* on_data(us_socket_t* s, char* data, int length) {
         return s;
     }
 
-    struct socket_detect_context* ds_context =
-        (struct socket_detect_context*)us_socket_context_ext(
-            SSL, us_socket_context(SSL, s));
+    struct detect_socket* ds = (struct detect_socket*)us_socket_ext(SSL, s);
 
-    printf("Received %d bytes\n", length);
-
-    uint8_t* buffer = ds_context->buffer;
-    PacketHeader& header = ds_context->header;
-    bool& header_received = ds_context->header_received;
-    size_t& bytes_received = ds_context->bytes_received;
+    uint8_t* buffer = ds->buffer;
+    PacketHeader& header = ds->header;
+    bool& header_received = ds->header_received;
+    size_t& bytes_received = ds->bytes_received;
 
     // printf("Received %d bytes\n", length);
 
@@ -664,11 +672,11 @@ struct us_socket_t* on_data(us_socket_t* s, char* data, int length) {
                 header_received = true;
                 bytes_received = 0;
 
-                if (ds_context->buffer_size < header.data_length) {
+                if (ds->buffer_size < header.data_length) {
                     free(buffer);
                     buffer = (uint8_t*)malloc(header.data_length);
-                    ds_context->buffer = buffer;
-                    ds_context->buffer_size = header.data_length;
+                    ds->buffer = buffer;
+                    ds->buffer_size = header.data_length;
                 }
 
                 // printf("Received header: version=%d, image_number=%d, "
@@ -693,9 +701,9 @@ struct us_socket_t* on_data(us_socket_t* s, char* data, int length) {
                 // printf("Received complete image\n");
 
                 // Process the complete image
-                process_image(s, buffer, header.data_length, header.image_type,
-                              header.image_number, header.group_number,
-                              header.width, header.height);
+                process_image(ds->id, buffer, header.data_length,
+                              header.image_type, header.image_number,
+                              header.group_number, header.width, header.height);
                 header_received = false;
                 bytes_received = 0;
             } else {
@@ -733,19 +741,23 @@ struct us_socket_t* on_detect_socket_writable(struct us_socket_t* s) {
 struct us_socket_t* on_socket_open(struct us_socket_t* s, int is_client,
                                    char* ip, int ip_length) {
     struct detect_socket* ds = (struct detect_socket*)us_socket_ext(SSL, s);
-    struct socket_detect_context* socket_context =
-        (struct socket_detect_context*)us_socket_context_ext(
-            SSL, us_socket_context(SSL, s));
 
-    socket_context->buffer = nullptr;
-    socket_context->buffer_size = 0;
-    socket_context->header_received = false;
-    socket_context->bytes_received = 0;
+    ds->id = SnowflakeGenerator::generate(0);
+
+    ds->buffer = nullptr;
+    ds->buffer_size = 0;
+    ds->header_received = false;
+    ds->bytes_received = 0;
 
     ds->backpressure = 0;
     ds->length = 0;
 
-    printf("Client connected\n");
+    printf("Client (%lu) connected\n", ds->id);
+
+    {
+        std::lock_guard<std::mutex> lock(socket_map_mutex);
+        socket_map[ds->id] = s;
+    }
 
     return s;
 }
@@ -754,13 +766,15 @@ struct us_socket_t* on_socket_open(struct us_socket_t* s, int is_client,
 struct us_socket_t* on_socket_close(struct us_socket_t* s, int code,
                                     void* reason) {
     struct detect_socket* ds = (struct detect_socket*)us_socket_ext(SSL, s);
-    struct socket_detect_context* socket_context =
-        (struct socket_detect_context*)us_socket_context_ext(
-            SSL, us_socket_context(SSL, s));
 
-    printf("Client disconnected\n");
+    {
+        std::lock_guard<std::mutex> lock(socket_map_mutex);
+        socket_map.erase(ds->id);
+    }
 
-    if (socket_context->buffer) free(socket_context->buffer);
+    printf("Client (%lu) disconnected\n", ds->id);
+
+    free(ds->buffer);
     free(ds->backpressure);
 
     return s;
@@ -768,14 +782,11 @@ struct us_socket_t* on_socket_close(struct us_socket_t* s, int code,
 
 /* Socket half-closed handler */
 struct us_socket_t* on_socket_end(struct us_socket_t* s) {
-    printf("Socket end\n");
     us_socket_shutdown(SSL, s);
     return us_socket_close(SSL, s, 0, NULL);
 }
 
 struct us_socket_t* on_socket_timeout(struct us_socket_t* s) {
-    printf("Socket timeout\n");
-
     /* Close idle HTTP sockets */
     return us_socket_close(SSL, s, 0, NULL);
 }
@@ -820,6 +831,8 @@ void run_server(context_t& ctx, int max_fps, bool profile) {
         if (custom_create_thread(&detect_thread, 0, image_detect_in_thread,
                                  &ctx))
             darknet_fatal_error(DARKNET_LOC, "Detect Thread creation failed");
+
+        custom_atomic_store_int(&run_image_detect_in_thread, 1);
 
         // start server
         us_loop_run(loop);
