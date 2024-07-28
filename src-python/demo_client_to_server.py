@@ -5,7 +5,7 @@ import struct
 # Constants
 SERVER_IP = '127.0.0.1'
 SERVER_PORT = 3000
-IMAGE_TYPE = 0  # Assuming 0 for RAW_BGR, adjust as needed
+IMAGE_TYPE = 2  # Assuming 0 for RAW_BGR, adjust as needed
 
 # Header
 # "=" with standard packing (no alignment)
@@ -63,6 +63,14 @@ def capture_and_send_images():
             # Convert the image to bytes
             image_data = frame.tobytes()
             data_length = len(image_data)
+
+            if IMAGE_TYPE == 2: # encode
+                encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 90]
+                result, image_data = cv2.imencode('.jpg', frame, encode_param)
+                if not result:
+                    print("Error: Could not encode image.")
+                    break
+                data_length = len(image_data)
 
             # Construct the PacketHeader
             header = struct.pack(PACKET_HEADER_FORMAT, 1, image_number, group_number, data_length, IMAGE_TYPE, width, height, 0)
