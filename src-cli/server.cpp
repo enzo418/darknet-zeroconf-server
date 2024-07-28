@@ -378,6 +378,22 @@ namespace {
 
     struct us_loop_t* loop = nullptr;
 
+    // Define the packet header structure
+    enum ImageType { RAW_BGR, RAW_RGB, ENCODED };  // Assumed with 3 channels
+
+#pragma pack(push, 1)  // 16 bytes + 4 padding
+    struct PacketHeader {
+        uint8_t version;        // only version 1 is supported
+        uint16_t image_number;  // Image number in the group
+        uint32_t group_number;  // Group number
+        uint32_t data_length;   // Length of the image data
+        uint8_t image_type;     // New field for image type
+        uint16_t width;         // New field for image width
+        uint16_t height;        // New field for image height
+        uint32_t padding {0};
+    };
+#pragma pack(pop)
+
     // socket extension
     struct detect_socket {
         char* backpressure;
@@ -385,7 +401,14 @@ namespace {
     };
 
     // socket context extension
-    struct socket_detect_context {};
+    struct socket_detect_context {
+        uint8_t* buffer;
+        size_t buffer_size;
+
+        PacketHeader header;
+        bool header_received = false;
+        size_t bytes_received = 0;
+    };
 
     // Images received
     struct ImageReceived {
@@ -417,7 +440,7 @@ namespace {
 #pragma pack()
 
     struct ResponsePac {
-        us_socket_t* res_s;
+        struct us_socket_t* res_s;
         DetectionResultHeader res;
         DetectionBoxData* data;
     };
@@ -425,6 +448,10 @@ namespace {
     // Queue to store the detection results
     static std::queue<ResponsePac> detection_result_queue;
     static std::mutex detection_result_queue_mutex;
+
+    static ResponsePac g_res;
+    static int volatile g_res_ready = 0;
+    static int volatile g_sender_busy = 0;
 }  // namespace
 
 /* After an image is processed by the detect function, saves and defers the
@@ -437,47 +464,55 @@ void on_wakeup(struct us_loop_t* loop) {
         ResponsePac result;
 
         {
-            std::lock_guard<std::mutex> lock(detection_result_queue_mutex);
-            if (detection_result_queue.empty()) break;
+            // std::lock_guard<std::mutex> lock(detection_result_queue_mutex);
+            // if (detection_result_queue.empty()) break;
 
-            result = std::move(detection_result_queue.front());
-            detection_result_queue.pop();
+            // result = detection_result_queue.front();
+            // detection_result_queue.pop();
+
+            if (!custom_atomic_load_int(&g_res_ready)) break;
+
+            result = g_res;
+            custom_atomic_store_int(&g_sender_busy, 1);
         }
 
-        us_socket_t* s = result.res_s;
+        // us_socket_t* s = result.res_s;
 
-        if (!s) continue;
+        // if (!s) continue;
 
-        struct detect_socket* ds = (struct detect_socket*)us_socket_ext(SSL, s);
+        // struct detect_socket* ds = (struct detect_socket*)us_socket_ext(SSL,
+        // s);
 
-        // Send the detection results to the client
-        size_t length = sizeof(DetectionResultHeader) +
-                        result.res.num_boxes * sizeof(DetectionBoxData);
-        char* data = (char*)malloc(length);
+        // // Send the detection results to the client
+        // size_t length = sizeof(DetectionResultHeader) +
+        //                 result.res.num_boxes * sizeof(DetectionBoxData);
+        // char* data = (char*)malloc(length);
 
-        memcpy(data, &result.res, sizeof(DetectionResultHeader));
-        memcpy(data + sizeof(DetectionResultHeader), result.data,
-               result.res.num_boxes * sizeof(DetectionBoxData));
+        // memcpy(data, &result.res, sizeof(DetectionResultHeader));
+        // memcpy(data + sizeof(DetectionResultHeader), result.data,
+        //        result.res.num_boxes * sizeof(DetectionBoxData));
 
-        printf("Sending header (%lu) bytes + %d boxes\n",
-               sizeof(DetectionResultHeader), result.res.num_boxes);
+        // printf("Sending header (%lu) bytes + %d boxes\n",
+        //        sizeof(DetectionResultHeader), result.res.num_boxes);
 
-        int written = us_socket_write(SSL, s, data, length, 0);
+        // int written = us_socket_write(SSL, s, data, length, 0);
 
-        if (written != length) {
-            char* new_buffer = (char*)malloc(ds->length + length - written);
-            memcpy(new_buffer, ds->backpressure, ds->length);
-            memcpy(new_buffer + ds->length, data + written, length - written);
-            free(ds->backpressure);
-            ds->backpressure = new_buffer;
-            ds->length += length - written;
-        }
+        // if (written != length) {
+        //     char* new_buffer = (char*)malloc(ds->length + length - written);
+        //     memcpy(new_buffer, ds->backpressure, ds->length);
+        //     memcpy(new_buffer + ds->length, data + written, length -
+        //     written); free(ds->backpressure); ds->backpressure = new_buffer;
+        //     ds->length += length - written;
+        // }
 
-        // free buffer
-        free(data);
+        // // free buffer
+        // free(data);
 
         // free the boxes
         free(result.data);
+
+        custom_atomic_store_int(&g_res_ready, 0);
+        custom_atomic_store_int(&g_sender_busy, 0);
     }
 
     printf("Wakeup done [Finished sending results]\n");
@@ -536,16 +571,19 @@ void* image_detect_in_thread(void* ptr) {
             }
         }
 
-        free(results);
-
         custom_atomic_store_int(&run_image_detect_in_thread, 0);
 
         {
-            std::lock_guard<std::mutex> lock(detection_result_queue_mutex);
-            detection_result_queue.push(std::move(res));
+            // std::lock_guard<std::mutex> lock(detection_result_queue_mutex);
+            // detection_result_queue.push(res);
+            g_res = res;
+
+            // custom_atomic_store_int(&g_res_ready, 1);
         }
 
         us_wakeup_loop(loop);
+
+        free(results);
     }
 
     printf("Detect Thread stopped\n");
@@ -553,23 +591,7 @@ void* image_detect_in_thread(void* ptr) {
     return 0;
 }
 
-// Define the packet header structure
-enum ImageType { RAW_BGR, RAW_RGB, ENCODED };  // Assumed with 3 channels
-
-#pragma pack(push, 1)  // 16 bytes + 4 padding
-struct PacketHeader {
-    uint8_t version;        // only version 1 is supported
-    uint16_t image_number;  // Image number in the group
-    uint32_t group_number;  // Group number
-    uint32_t data_length;   // Length of the image data
-    uint8_t image_type;     // New field for image type
-    uint16_t width;         // New field for image width
-    uint16_t height;        // New field for image height
-    uint32_t padding {0};
-};
-#pragma pack(pop)
-
-void process_image(us_socket_t* s, const std::vector<uint8_t>& image_data,
+void process_image(us_socket_t* s, uint8_t* image_data, uint32_t image_data_len,
                    uint8_t image_type, uint16_t image_number,
                    uint32_t group_number, uint16_t width, uint16_t height) {
     // printf("Decoding received image: %dx%d   n=%d   g=%d\n", width, height,
@@ -577,12 +599,13 @@ void process_image(us_socket_t* s, const std::vector<uint8_t>& image_data,
 
     cv::Mat img;
     if (image_type == RAW_BGR) {
-        img = cv::Mat(height, width, CV_8UC3, (void*)image_data.data());
+        img = cv::Mat(height, width, CV_8UC3, (void*)image_data);
     } else if (image_type == RAW_RGB) {
-        img = cv::Mat(height, width, CV_8UC3, (void*)image_data.data());
+        img = cv::Mat(height, width, CV_8UC3, (void*)image_data);
         cv::cvtColor(img, img, cv::COLOR_RGB2BGR);
     } else if (image_type == ENCODED) {
-        img = cv::imdecode(image_data, cv::IMREAD_COLOR);
+        img = cv::imdecode(cv::Mat(1, image_data_len, CV_8UC1, image_data),
+                           cv::IMREAD_COLOR);
     }
 
     if (!img.empty()) {
@@ -608,12 +631,19 @@ void process_image(us_socket_t* s, const std::vector<uint8_t>& image_data,
 /* ------------------------------------------------------ */
 
 struct us_socket_t* on_data(us_socket_t* s, char* data, int length) {
-    struct detect_socket* ds = (struct detect_socket*)us_socket_ext(SSL, s);
+    /* Do not accept any data while in shutdown state */
+    if (us_socket_is_shut_down(SSL, (us_socket_t*)s)) {
+        return s;
+    }
 
-    static std::vector<uint8_t> buffer;
-    static PacketHeader header;
-    static bool header_received = false;
-    static size_t bytes_received = 0;
+    struct socket_detect_context* ds_context =
+        (struct socket_detect_context*)us_socket_context_ext(
+            SSL, us_socket_context(SSL, s));
+
+    uint8_t* buffer = ds_context->buffer;
+    PacketHeader& header = ds_context->header;
+    bool& header_received = ds_context->header_received;
+    size_t& bytes_received = ds_context->bytes_received;
 
     // printf("Received %d bytes\n", length);
 
@@ -631,7 +661,13 @@ struct us_socket_t* on_data(us_socket_t* s, char* data, int length) {
             if (bytes_received == header_size) {
                 header_received = true;
                 bytes_received = 0;
-                buffer.resize(header.data_length);
+
+                if (ds_context->buffer_size < header.data_length) {
+                    free(buffer);
+                    buffer = (uint8_t*)malloc(header.data_length);
+                    ds_context->buffer = buffer;
+                    ds_context->buffer_size = header.data_length;
+                }
 
                 // printf("Received header: version=%d, image_number=%d, "
                 // "group_number=%d, data_length=%d, image_type=%d, "
@@ -646,7 +682,7 @@ struct us_socket_t* on_data(us_socket_t* s, char* data, int length) {
         } else {
             size_t bytes_to_copy = std::min(header.data_length - bytes_received,
                                             static_cast<size_t>(length));
-            std::memcpy(buffer.data() + bytes_received, data, bytes_to_copy);
+            std::memcpy(buffer + bytes_received, data, bytes_to_copy);
             bytes_received += bytes_to_copy;
             data += bytes_to_copy;
             length -= bytes_to_copy;
@@ -655,8 +691,9 @@ struct us_socket_t* on_data(us_socket_t* s, char* data, int length) {
                 // printf("Received complete image\n");
 
                 // Process the complete image
-                process_image(s, buffer, header.image_type, header.image_number,
-                              header.group_number, header.width, header.height);
+                process_image(s, buffer, header.data_length, header.image_type,
+                              header.image_number, header.group_number,
+                              header.width, header.height);
                 header_received = false;
                 bytes_received = 0;
             } else {
@@ -694,6 +731,14 @@ struct us_socket_t* on_detect_socket_writable(struct us_socket_t* s) {
 struct us_socket_t* on_socket_open(struct us_socket_t* s, int is_client,
                                    char* ip, int ip_length) {
     struct detect_socket* ds = (struct detect_socket*)us_socket_ext(SSL, s);
+    struct socket_detect_context* socket_context =
+        (struct socket_detect_context*)us_socket_context_ext(
+            SSL, us_socket_context(SSL, s));
+
+    socket_context->buffer = nullptr;
+    socket_context->buffer_size = 0;
+    socket_context->header_received = false;
+    socket_context->bytes_received = 0;
 
     ds->backpressure = 0;
     ds->length = 0;
@@ -707,17 +752,29 @@ struct us_socket_t* on_socket_open(struct us_socket_t* s, int is_client,
 struct us_socket_t* on_socket_close(struct us_socket_t* s, int code,
                                     void* reason) {
     struct detect_socket* ds = (struct detect_socket*)us_socket_ext(SSL, s);
+    struct socket_detect_context* socket_context =
+        (struct socket_detect_context*)us_socket_context_ext(
+            SSL, us_socket_context(SSL, s));
 
     printf("Client disconnected\n");
 
+    if (socket_context->buffer) free(socket_context->buffer);
     free(ds->backpressure);
 
     return s;
 }
 
 /* Socket half-closed handler */
-struct us_socket_t* on_echo_socket_end(struct us_socket_t* s) {
+struct us_socket_t* on_socket_end(struct us_socket_t* s) {
+    printf("Socket end\n");
     us_socket_shutdown(SSL, s);
+    return us_socket_close(SSL, s, 0, NULL);
+}
+
+struct us_socket_t* on_socket_timeout(struct us_socket_t* s) {
+    printf("Socket timeout\n");
+
+    /* Close idle HTTP sockets */
     return us_socket_close(SSL, s, 0, NULL);
 }
 
@@ -741,7 +798,8 @@ void run_server(context_t& ctx, int max_fps, bool profile) {
     us_socket_context_on_open(SSL, context, on_socket_open);
     us_socket_context_on_data(SSL, context, on_data);
     us_socket_context_on_close(SSL, context, on_socket_close);
-    us_socket_context_on_end(SSL, context, on_echo_socket_end);
+    us_socket_context_on_end(SSL, context, on_socket_end);
+    us_socket_context_on_timeout(SSL, context, on_socket_timeout);
 
     us_socket_context_on_writable(SSL, context, on_detect_socket_writable);
 
@@ -763,6 +821,9 @@ void run_server(context_t& ctx, int max_fps, bool profile) {
 
         // start server
         us_loop_run(loop);
+
+        // signal the detection thread to exit
+        custom_atomic_store_int(&flag_exit, 1);
 
         custom_join(detect_thread, 0);
 
