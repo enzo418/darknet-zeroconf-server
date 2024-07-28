@@ -806,8 +806,8 @@ void run_server(context_t& ctx, int max_fps, bool profile) {
     us_socket_context_on_writable(SSL, context, on_detect_socket_writable);
 
     /* Start accepting echo sockets */
-    struct us_listen_socket_t* listen_socket =
-        us_socket_context_listen(SSL, context, 0, 3000, 0, 0);
+    struct us_listen_socket_t* listen_socket = us_socket_context_listen(
+        SSL, context, 0, 3000, 0, sizeof(struct detect_socket));
 
     if (listen_socket) {
         printf("Listening on port 3000...\n");
