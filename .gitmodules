@@ -1,0 +1,3 @@
+[submodule "src-cli/uSockets"]
+	path = src-cli/uSockets
+	url = https://github.com/enzo418/uSockets

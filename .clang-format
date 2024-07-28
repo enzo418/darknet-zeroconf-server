@@ -1,0 +1,15 @@
+---
+Language: Cpp
+BasedOnStyle: Google
+DerivePointerAlignment: false
+PointerAlignment: Left
+SpaceBeforeRangeBasedForLoopColon: true
+#SpaceBeforeParens: 'ControlStatementsExceptControlMacros'
+SpaceBeforeCtorInitializerColon: true
+SpaceBeforeInheritanceColon: true
+SpaceBeforeCpp11BracedList: true
+# SpaceBeforeCaseColon: false
+SpaceBeforeAssignmentOperators: true
+NamespaceIndentation: All
+IndentWidth: 4
+AlignAfterOpenBracket: Align
