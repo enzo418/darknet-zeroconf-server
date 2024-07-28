@@ -476,37 +476,37 @@ void on_wakeup(struct us_loop_t* loop) {
             custom_atomic_store_int(&g_sender_busy, 1);
         }
 
-        // us_socket_t* s = result.res_s;
+        us_socket_t* s = result.res_s;
 
-        // if (!s) continue;
+        if (!s) continue;
 
-        // struct detect_socket* ds = (struct detect_socket*)us_socket_ext(SSL,
-        // s);
+        struct detect_socket* ds = (struct detect_socket*)us_socket_ext(SSL, s);
 
-        // // Send the detection results to the client
-        // size_t length = sizeof(DetectionResultHeader) +
-        //                 result.res.num_boxes * sizeof(DetectionBoxData);
-        // char* data = (char*)malloc(length);
+        // Send the detection results to the client
+        size_t length = sizeof(DetectionResultHeader) +
+                        result.res.num_boxes * sizeof(DetectionBoxData);
+        char* data = (char*)malloc(length);
 
-        // memcpy(data, &result.res, sizeof(DetectionResultHeader));
-        // memcpy(data + sizeof(DetectionResultHeader), result.data,
-        //        result.res.num_boxes * sizeof(DetectionBoxData));
+        memcpy(data, &result.res, sizeof(DetectionResultHeader));
+        memcpy(data + sizeof(DetectionResultHeader), result.data,
+               result.res.num_boxes * sizeof(DetectionBoxData));
 
-        // printf("Sending header (%lu) bytes + %d boxes\n",
-        //        sizeof(DetectionResultHeader), result.res.num_boxes);
+        printf("Sending header (%lu) bytes + %d boxes\n",
+               sizeof(DetectionResultHeader), result.res.num_boxes);
 
-        // int written = us_socket_write(SSL, s, data, length, 0);
+        int written = us_socket_write(SSL, s, data, length, 0);
 
-        // if (written != length) {
-        //     char* new_buffer = (char*)malloc(ds->length + length - written);
-        //     memcpy(new_buffer, ds->backpressure, ds->length);
-        //     memcpy(new_buffer + ds->length, data + written, length -
-        //     written); free(ds->backpressure); ds->backpressure = new_buffer;
-        //     ds->length += length - written;
-        // }
+        if (written != length) {
+            char* new_buffer = (char*)malloc(ds->length + length - written);
+            memcpy(new_buffer, ds->backpressure, ds->length);
+            memcpy(new_buffer + ds->length, data + written, length - written);
+            free(ds->backpressure);
+            ds->backpressure = new_buffer;
+            ds->length += length - written;
+        }
 
-        // // free buffer
-        // free(data);
+        // free buffer
+        free(data);
 
         // free the boxes
         free(result.data);
@@ -578,7 +578,7 @@ void* image_detect_in_thread(void* ptr) {
             // detection_result_queue.push(res);
             g_res = res;
 
-            // custom_atomic_store_int(&g_res_ready, 1);
+            custom_atomic_store_int(&g_res_ready, 1);
         }
 
         us_wakeup_loop(loop);
@@ -639,6 +639,8 @@ struct us_socket_t* on_data(us_socket_t* s, char* data, int length) {
     struct socket_detect_context* ds_context =
         (struct socket_detect_context*)us_socket_context_ext(
             SSL, us_socket_context(SSL, s));
+
+    printf("Received %d bytes\n", length);
 
     uint8_t* buffer = ds_context->buffer;
     PacketHeader& header = ds_context->header;
