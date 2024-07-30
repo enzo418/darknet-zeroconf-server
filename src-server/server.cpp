@@ -28,6 +28,7 @@
 #include "http_stream.hpp"
 #include "image.hpp"
 #include "image_opencv.hpp"
+#include "mdns.hpp"
 #include "network.hpp"
 #include "option_list.hpp"
 #include "parser.hpp"
@@ -750,11 +751,35 @@ void run_server(context_t& ctx, int max_fps, bool profile) {
 
         custom_atomic_store_int(&run_image_detect_in_thread, 1);
 
+        /* ------------- Announce Service using mDNS ------------ */
+        std::map<const char*, const char*> txtRecords = {{"version", "1.0.0"}};
+        std::string host_name = mdns::get_host_name();
+        mdns::MDNSService darknet_service(host_name, "_darknet._tcp.local.",
+                                          port, txtRecords);
+
+        auto res = darknet_service.start();
+        if (res.wait_for(std::chrono::seconds(1)) ==
+            std::future_status::ready) {
+            printf(
+                "mDNS announce service darknet failed to start: code=%d, "
+                "error=%s\n",
+                res.get(), strerror(errno));
+
+            exit(1);
+        } else {
+            printf(
+                "mDNS service _darknet._tcp.local.:%d started! Hostname=%s\n",
+                port, host_name.c_str());
+        }
+
         /* -------------------- start server -------------------- */
         us_loop_run(loop);
 
         /* --------- signal the detection thread to exit -------- */
         custom_atomic_store_int(&flag_exit, 1);
+
+        /* ---- signal through mDNS the service is going down --- */
+        darknet_service.stop();
 
         custom_join(detect_thread, 0);
 

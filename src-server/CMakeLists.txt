@@ -38,8 +38,28 @@ ENDIF ()
 add_subdirectory(uSockets)
 target_include_directories(server PRIVATE uSockets/src)
 
+# mdns: (TODO: use a more professional approach -> Dependency.cmake)
+ExternalProject_Add(
+    dep-mdns
+    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/mdns-cpp
+    UPDATE_COMMAND ""
+    PATCH_COMMAND ""
+    CMAKE_ARGS
+		-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+        -DCMAKE_INSTALL_PREFIX=${DEPENDENCY_INSTALL_DIR}
+		-DCMAKE_INSTALL_INCLUDEDIR=${DEPENDENCY_INCLUDE_DIR}
+		-DCMAKE_INSTALL_LIBDIR=${DEPENDENCY_LIB_DIR}
+		-DMDNS_BUILD_EXAMPLE=OFF
+		-DMDNS_DISABLE_LOGGING=ON
+    TEST_COMMAND ""
+)
+
+add_dependencies(server dep-mdns)
+target_include_directories(server PRIVATE ${DEPENDENCY_INCLUDE_DIR})
+target_link_directories(server PRIVATE ${DEPENDENCY_LIB_DIR})
+
 #
-TARGET_LINK_LIBRARIES (server PRIVATE darknet ${DARKNET_LINK_LIBS} usocketslib)
+TARGET_LINK_LIBRARIES (server PRIVATE darknet ${DARKNET_LINK_LIBS} usocketslib mdns)
 
 IF (UNIX)
 	# non-Windows installation is very simple

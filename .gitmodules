@@ -1,3 +1,6 @@
 [submodule "src-server/uSockets"]
 	path = src-server/uSockets
 	url = https://github.com/enzo418/uSockets
+[submodule "src-server/mdns-cpp"]
+	path = src-server/mdns-cpp
+	url = https://github.com/enzo418/mdns-cpp
