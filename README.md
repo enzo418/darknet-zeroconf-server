@@ -1,6 +1,9 @@
-# Darknet TCP Server
+# Darknet Zeroconf TCP Server
 
-This project provides a TCP server for the Darknet object detection framework. The server is designed to handle image processing requests over a TCP connection, allowing for remote object detection.
+This project provides a zeroconf TCP server for the Darknet object detection framework. The server is designed to handle image processing requests over a TCP connection, allowing for remote object detection.
+
+## Zeroconf
+Use mDNS to discover the server on the network. The server will announce itself as `_darknet._tcp.local.`
 
 ## Building
 Refer to the original [README](README_darknet.md#building) for building instructions.
