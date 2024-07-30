@@ -9,6 +9,7 @@
 #include "server.hpp"
 
 #include <libusockets.h>
+#include <signal.h>
 
 #include <cstdint>
 #include <cstdio>
@@ -694,17 +695,21 @@ void on_pre(struct us_loop_t* loop) {}
 /* Loop post iteration handler */
 void on_post(struct us_loop_t* loop) {}
 
+void onInterruptHandler(int s) {
+    // Announce the service is going down
+}
+
 /* ----------- Entry point to start the server ---------- */
 void run_server(context_t& ctx, int max_fps, bool profile) {
     assert(sizeof(PacketHeader) == 20);
 
     loop = us_create_loop(0, on_wakeup, on_pre, on_post, 0);
 
-    // Initialize uSockets
+    /* ----------------- Initialize uSockets ---------------- */
     struct us_socket_context_t* context = us_create_socket_context(
         SSL, loop, sizeof(struct socket_detect_context), {});
 
-    // Set up the server
+    /* ------------------ Set up the server ----------------- */
     us_socket_context_on_open(SSL, context, on_socket_open);
     us_socket_context_on_data(SSL, context, on_data);
     us_socket_context_on_close(SSL, context, on_socket_close);
@@ -713,17 +718,31 @@ void run_server(context_t& ctx, int max_fps, bool profile) {
 
     us_socket_context_on_writable(SSL, context, on_detect_socket_writable);
 
-    /* Start accepting echo sockets */
-    struct us_listen_socket_t* listen_socket = us_socket_context_listen(
-        SSL, context, 0, 3000, 0, sizeof(struct detect_socket));
+    /* ------------------- Start listener ------------------- */
+    const int possible_ports[10] = {3042,  5342,  15042, 31542, 46042,
+                                    60042, 61042, 62042, 63042, 64042};
+
+    struct us_listen_socket_t* listen_socket = nullptr;
+
+    // NOTE: I prefer this to bind(0)
+
+    int i = 0;
+    while (!listen_socket && i < 10) {
+        listen_socket =
+            us_socket_context_listen(SSL, context, 0, possible_ports[i], 0,
+                                     sizeof(struct detect_socket));
+        i++;
+    }
+
+    const int port = possible_ports[i - 1];
 
     if (listen_socket) {
-        printf("Listening on port 3000...\n");
+        printf("Listening on port %d...\n", port);
 
         Run run(profile);
         current_run = &run;
 
-        // run detection thread
+        /* ---------------- run detection thread ---------------- */
         custom_thread_t detect_thread = NULL;
         if (custom_create_thread(&detect_thread, 0, image_detect_in_thread,
                                  &ctx))
@@ -731,10 +750,10 @@ void run_server(context_t& ctx, int max_fps, bool profile) {
 
         custom_atomic_store_int(&run_image_detect_in_thread, 1);
 
-        // start server
+        /* -------------------- start server -------------------- */
         us_loop_run(loop);
 
-        // signal the detection thread to exit
+        /* --------- signal the detection thread to exit -------- */
         custom_atomic_store_int(&flag_exit, 1);
 
         custom_join(detect_thread, 0);
@@ -747,6 +766,8 @@ void run_server(context_t& ctx, int max_fps, bool profile) {
 }
 
 int main(int argc, char** argv) {
+    signal(SIGINT, onInterruptHandler);
+
     if (argc < 4) {
         fprintf(stderr, "usage: %s [demo/run] [cfg] [weights]\n", argv[0]);
         return 0;
