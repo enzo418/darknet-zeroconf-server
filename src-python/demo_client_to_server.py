@@ -4,7 +4,7 @@ import struct
 
 # Constants
 SERVER_IP = '127.0.0.1'
-SERVER_PORT = 3000
+SERVER_PORT = 3042
 IMAGE_TYPE = 2  # Assuming 0 for RAW_BGR, adjust as needed
 
 # Header

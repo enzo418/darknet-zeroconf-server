@@ -398,8 +398,11 @@ void on_wakeup(struct us_loop_t* loop) {
         char* data = (char*)malloc(length);
 
         memcpy(data, &result.res, sizeof(DetectionResultHeader));
-        memcpy(data + sizeof(DetectionResultHeader), result.data,
-               result.res.num_boxes * sizeof(DetectionBoxData));
+
+        if (result.data) {
+            memcpy(data + sizeof(DetectionResultHeader), result.data,
+                   result.res.num_boxes * sizeof(DetectionBoxData));
+        }
 
         // printf("Sending header (%lu) bytes + %d boxes\n",
         //        sizeof(DetectionResultHeader), result.res.num_boxes);

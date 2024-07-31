@@ -21,9 +21,80 @@ LIST (SORT CLISRC)
 ADD_EXECUTABLE (server ${CLISRC} SnowflakeGenerator_64.cpp)
 SET_TARGET_PROPERTIES (server PROPERTIES OUTPUT_NAME "darknet_server")
 
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-	# NOTE: Set ASAN_OPTIONS=protect_shadow_gap=0 before running
-	# 	e.g.	$ ASAN_OPTIONS=protect_shadow_gap=0 darknet_server ...
+# Note: these are mutually exclusive.
+option(ASAN "Enable AddressSanitizer (ASan)" OFF)
+option(MSAN "Enable MemorySanitizer (MSan)" OFF)
+option(TSAN "Enable ThreadSanitizer (TSan)" OFF)
+option(UBSAN "Enable UndefinedBehaviorSanitizer (UBSan)" OFF)
+
+if(MSAN AND NOT CMAKE_C_COMPILER_ID MATCHES "AppleClang|Clang")
+  message(SEND_ERROR "MemorySanitizer requires clang. Try again with -DCMAKE_C_COMPILER=clang")
+endif()
+
+if(ASAN)
+  message(STATUS "Enabling AddressSanitizer (ASan)")
+  message(WARNING "Don't forget to set ASAN_OPTIONS=protect_shadow_gap=0 before running or cuda will fail to initialize.")
+
+  list(APPEND darknet_defines __ASAN__=1)
+  if(CMAKE_C_COMPILER_ID MATCHES "AppleClang|GNU|Clang")
+    # set CMAKE_C_FLAGS, CMAKE_SHARED_LINKER_FLAGS and CMAKE_EXE_LINKER_FLAGS
+    # or ...
+	target_compile_options(server PRIVATE -fsanitize=address -fno-omit-frame-pointer)
+	target_link_options(server PRIVATE -fsanitize=address -fno-omit-frame-pointer)
+  elseif(MSVC)
+    target_compile_options(server PRIVATE /fsanitize=address)
+    target_link_options(server PRIVATE /fsanitize=address)
+  else()
+    message(SEND_ERROR "AddressSanitizer support requires clang, gcc, or msvc. Try again with -DCMAKE_C_COMPILER.")
+  endif()
+endif()
+
+if(MSAN)
+  list(APPEND darknet_defines __MSAN__=1)
+  target_compile_options(server PRIVATE -fsanitize=memory -fno-omit-frame-pointer -fsanitize-memory-track-origins=2)
+  target_link_options(server PRIVATE -fsanitize=memory -fno-omit-frame-pointer -fsanitize-memory-track-origins=2)
+endif()
+
+if(TSAN)
+  list(APPEND darknet_defines __TSAN__=1)
+
+  message(WARNING "ThreadSanitizer and opencv do not play well together.")
+
+  if(CMAKE_C_COMPILER_ID MATCHES "AppleClang|GNU|Clang")
+	target_compile_options(server PRIVATE
+		-fsanitize=thread
+		-fno-omit-frame-pointer
+	)
+
+	target_link_options(server PRIVATE
+		-fsanitize=thread
+		-fno-omit-frame-pointer
+	)
+  else()
+    message(SEND_ERROR "ThreadSanitizer support requires clang or gcc. Try again with -DCMAKE_C_COMPILER.")
+  endif()
+endif()
+
+if(UBSAN)
+  list(APPEND darknet_defines __UBSAN__=1)
+  if(CMAKE_C_COMPILER_ID MATCHES "AppleClang|GNU|Clang")
+    target_compile_options(server PRIVATE
+		-fsanitize=undefined
+		-fno-omit-frame-pointer
+	)
+
+	target_link_options(server PRIVATE
+		-fsanitize=undefined
+		-fno-omit-frame-pointer
+	)
+  elseif(MSVC)
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /fsanitize=undefined")
+  else()
+    message(SEND_ERROR "UndefinedBehaviorSanitizer support requires clang, gcc, or msvc. Try again with -DCMAKE_C_COMPILER.")
+  endif()
+endif()
+
+if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND NOT MSVC AND NOT ASAN AND NOT MSAN AND NOT TSAN AND NOT UBSAN)
 	target_compile_options(server PRIVATE -fsanitize=address)
 	target_link_options(server PRIVATE -fsanitize=address)
 endif()
@@ -33,6 +104,8 @@ IF (DARKNET_USE_CUDA)
 	SET_TARGET_PROPERTIES (server PROPERTIES CUDA_SEPARABLE_COMPILATION OFF)
 	SET_TARGET_PROPERTIES (server PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS OFF)
 ENDIF ()
+
+target_compile_definitions(server PRIVATE ${uv_defines})
 
 # uWebsocket
 add_subdirectory(uSockets)
