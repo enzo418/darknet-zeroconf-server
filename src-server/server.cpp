@@ -11,6 +11,7 @@
 #include <libusockets.h>
 #include <signal.h>
 
+#include <csignal>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -82,6 +83,8 @@ struct DetectionSingleResult {
  */
 void detect(context_t& ctx, cv::Mat* img, DetectionSingleResult** out_results,
             int& out_num_results) {
+    out_num_results = 0;
+
     if (!img) {
         return;
     }
@@ -166,19 +169,17 @@ void detect(context_t& ctx, cv::Mat* img, DetectionSingleResult** out_results,
             }
         }
         if (class_id >= 0) {
-            out_num_results++;
-
             // NOTE: All positions and sizes are in relative coordinates (0..1)
             // to the input image (net_w, net_h).
             box b = dets[i].bbox;
             recalculate_bbox_coordinates(b, img->cols, img->rows);
 
-            (*out_results)[i].class_id = class_id;
-            (*out_results)[i].prob = prob;
-            (*out_results)[i].x = b.x;
-            (*out_results)[i].y = b.y;
-            (*out_results)[i].w = b.w;
-            (*out_results)[i].h = b.h;
+            (*out_results)[out_num_results].class_id = class_id;
+            (*out_results)[out_num_results].prob = prob;
+            (*out_results)[out_num_results].x = b.x;
+            (*out_results)[out_num_results].y = b.y;
+            (*out_results)[out_num_results].w = b.w;
+            (*out_results)[out_num_results].h = b.h;
 
             if (!ctx.dontdraw_bbox) {
                 // format: [class_id] class_name prob x y w h
@@ -191,6 +192,8 @@ void detect(context_t& ctx, cv::Mat* img, DetectionSingleResult** out_results,
                             cv::FONT_HERSHEY_SIMPLEX, 0.5,
                             cv::Scalar(0, 255, 0), 2);
             }
+
+            out_num_results++;
         }
     }
 
@@ -211,6 +214,17 @@ void detect(context_t& ctx, cv::Mat* img, DetectionSingleResult** out_results,
         if (cc == 27 || cc == 1048603) return;
         // // --
     }
+}
+
+void warmup(context_t& ctx) {
+    cv::Mat img = cv::Mat::ones(416, 416, CV_8UC3);
+
+    DetectionSingleResult* results = nullptr;
+    int num_results = 0;
+
+    detect(ctx, &img, &results, num_results);
+
+    free_ptrs((void**)results, num_results);
 }
 
 void demo_classifier(context_t& ctx, int cam_index, const char* filename,
@@ -411,9 +425,13 @@ void on_wakeup(struct us_loop_t* loop) {
 
         if (written != length) {
             char* new_buffer = (char*)malloc(ds->length + length - written);
-            memcpy(new_buffer, ds->backpressure, ds->length);
+
+            if (ds->length > 0 && ds->backpressure) {
+                memcpy(new_buffer, ds->backpressure, ds->length);
+                free(ds->backpressure);
+            }
+
             memcpy(new_buffer + ds->length, data + written, length - written);
-            free(ds->backpressure);
             ds->backpressure = new_buffer;
             ds->length += length - written;
         } else {
@@ -441,7 +459,7 @@ void* image_detect_in_thread(void* ptr) {
             this_thread_yield();
         }
 
-        image_queue_sem.acquire();
+        if (!image_queue_sem.acquire_timeout<100>()) continue;
 
         ImageReceived img_received;
         {
@@ -574,7 +592,10 @@ struct us_socket_t* on_data(us_socket_t* s, char* data, int length) {
                 header_received = true;
                 bytes_received = 0;
 
-                if (ds->buffer_size < header.data_length) {
+                if (header.data_length == 0) {
+                    header_received = false;
+                    bytes_received = 0;
+                } else if (ds->buffer_size < header.data_length) {
                     free(buffer);
                     buffer = (uint8_t*)malloc(header.data_length);
                     ds->buffer = buffer;
@@ -627,8 +648,12 @@ struct us_socket_t* on_detect_socket_writable(struct us_socket_t* s) {
     int written = us_socket_write(SSL, s, ds->backpressure, ds->length, 0);
     if (written != ds->length) {
         char* new_buffer = (char*)malloc(ds->length - written);
-        memcpy(new_buffer, ds->backpressure, ds->length - written);
-        free(ds->backpressure);
+
+        if (ds->length > 0 && ds->backpressure) {
+            memcpy(new_buffer, ds->backpressure, ds->length - written);
+            free(ds->backpressure);
+        }
+
         ds->backpressure = new_buffer;
         ds->length -= written;
     } else {
@@ -699,8 +724,30 @@ void on_pre(struct us_loop_t* loop) {}
 /* Loop post iteration handler */
 void on_post(struct us_loop_t* loop) {}
 
+struct us_listen_socket_t* g_listen_socket = nullptr;
+mdns::MDNSService* g_darknet_service = nullptr;
+
+void super_handler(int sig) {
+    // set the default signal action
+    std::signal(sig, SIG_DFL);
+
+    std::cout << "calling Darknet's fatal error handler due to signal #" << sig
+              << std::endl;
+
+#ifdef WIN32
+    darknet_fatal_error(DARKNET_LOC, "signal handler invoked for signal #%d",
+                        sig);
+#else
+    darknet_fatal_error(DARKNET_LOC,
+                        "signal handler invoked for signal #%d (%s)", sig,
+                        strsignal(sig));
+#endif
+}
+
 void onInterruptHandler(int s) {
-    // Announce the service is going down
+    std::signal(s, SIG_DFL);  // set default handler
+
+    if (g_listen_socket) us_listen_socket_close(SSL, g_listen_socket);
 }
 
 /* ----------- Entry point to start the server ---------- */
@@ -726,13 +773,11 @@ void run_server(context_t& ctx, int max_fps, bool profile) {
     const int possible_ports[10] = {3042,  5342,  15042, 31542, 46042,
                                     60042, 61042, 62042, 63042, 64042};
 
-    struct us_listen_socket_t* listen_socket = nullptr;
-
     // NOTE: I prefer this to bind(0)
 
     int i = 0;
-    while (!listen_socket && i < 10) {
-        listen_socket =
+    while (!g_listen_socket && i < 10) {
+        g_listen_socket =
             us_socket_context_listen(SSL, context, 0, possible_ports[i], 0,
                                      sizeof(struct detect_socket));
         i++;
@@ -740,7 +785,7 @@ void run_server(context_t& ctx, int max_fps, bool profile) {
 
     const int port = possible_ports[i - 1];
 
-    if (listen_socket) {
+    if (g_listen_socket) {
         printf("Listening on port %d...\n", port);
 
         Run run(profile);
@@ -760,6 +805,7 @@ void run_server(context_t& ctx, int max_fps, bool profile) {
         mdns::MDNSService darknet_service(host_name, "_darknet._tcp.local.",
                                           port, txtRecords);
 
+        g_darknet_service = &darknet_service;
         auto res = darknet_service.start();
         if (res.wait_for(std::chrono::seconds(1)) ==
             std::future_status::ready) {
@@ -774,6 +820,11 @@ void run_server(context_t& ctx, int max_fps, bool profile) {
                 "mDNS service _darknet._tcp.local.:%d started! Hostname=%s\n",
                 port, host_name.c_str());
         }
+
+        /* ------------------- Warm up darknet ------------------ */
+        printf("Warming up darknet...\n");
+        warmup(ctx);
+        printf("Warm up done\n");
 
         /* -------------------- start server -------------------- */
         us_loop_run(loop);
@@ -794,7 +845,20 @@ void run_server(context_t& ctx, int max_fps, bool profile) {
 }
 
 int main(int argc, char** argv) {
-    signal(SIGINT, onInterruptHandler);
+    signal(SIGINT, onInterruptHandler);   // 2: CTRL+C
+    signal(SIGILL, onInterruptHandler);   // 4: illegal instruction
+    signal(SIGABRT, onInterruptHandler);  // 6: abort()
+    signal(SIGFPE, onInterruptHandler);   // 8: floating point exception
+    signal(SIGSEGV, onInterruptHandler);  // 11: segfault
+    signal(SIGTERM, onInterruptHandler);  // 15: terminate
+#ifdef WIN32
+    signal(SIGBREAK, onInterruptHandler);  // CTRL+C on Windows
+#else
+    signal(SIGHUP, onInterruptHandler);   // 1: hangup
+    signal(SIGQUIT, onInterruptHandler);  // 3: quit
+    signal(SIGUSR1, onInterruptHandler);  // 10: user-defined
+    signal(SIGUSR2, onInterruptHandler);  // 12: user-defined
+#endif
 
     if (argc < 4) {
         fprintf(stderr, "usage: %s [demo/run] [cfg] [weights]\n", argv[0]);
