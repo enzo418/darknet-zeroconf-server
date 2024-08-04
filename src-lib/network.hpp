@@ -114,7 +114,7 @@ int get_current_batch(network net);
 int64_t get_current_iteration(network net);
 //void free_network(network net); // darknet.h
 void compare_networks(network n1, network n2, data d);
-char * get_layer_string(LAYER_TYPE a);
+const char * get_layer_string(LAYER_TYPE a);
 
 network make_network(int n);
 void forward_network(network net, network_state state);

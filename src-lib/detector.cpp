@@ -25,7 +25,7 @@ namespace
 
 static int coco_ids[] = { 1,2,3,4,5,6,7,8,9,10,11,13,14,15,16,17,18,19,20,21,22,23,24,25,27,28,31,32,33,34,35,36,37,38,39,40,41,42,43,44,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,67,70,72,73,74,75,76,77,78,79,80,81,82,84,85,86,87,88,89,90 };
 
-void train_detector(char *datacfg, char *cfgfile, char *weightfile, int *gpus, int ngpus, int clear, int dont_show, int calc_map, float thresh, float iou_thresh, int mjpeg_port, int show_imgs, int benchmark_layers, char* chart_path)
+void train_detector(char *datacfg, char *cfgfile, char *weightfile, int *gpus, int ngpus, int clear, int dont_show, int calc_map, float thresh, float iou_thresh, int mjpeg_port, int show_imgs, int benchmark_layers, const char* chart_path)
 {
 	TAT(TATPARMS);
 
@@ -40,9 +40,9 @@ void train_detector(char *datacfg, char *cfgfile, char *weightfile, int *gpus, i
 //	const std::filesystem::path & weightfile	= cfg_and_state.weights_filename;
 
 	list *options = read_data_cfg(datacfg);
-	char *train_images = option_find_str(options, "train", "data/train.txt");
-	char *valid_images = option_find_str(options, "valid", train_images);
-	char *backup_directory = option_find_str(options, "backup", "/backup/");
+	const char *train_images = option_find_str(options, "train", "data/train.txt");
+	const char *valid_images = option_find_str(options, "valid", train_images);
+	const char *backup_directory = option_find_str(options, "backup", "/backup/");
 
 	network net_map;
 	if (calc_map)
@@ -66,7 +66,7 @@ void train_detector(char *datacfg, char *cfgfile, char *weightfile, int *gpus, i
 			free_layer_custom(net_map.layers[k], 1);
 		}
 
-		char *name_list = option_find_str(options, "names", nullptr);
+		const char *name_list = option_find_str(options, "names", nullptr);
 		int names_size = 0;
 		char **names = get_labels_custom(name_list, &names_size);
 		if (net_classes != names_size)
@@ -657,11 +657,11 @@ void print_imagenet_detections(FILE *fp, int id, detection *dets, int total, int
 	}
 }
 
-static void print_kitti_detections(FILE **fps, char *id, detection *dets, int total, int classes, int w, int h, char *outfile, char *prefix)
+static void print_kitti_detections(FILE **fps, char *id, detection *dets, int total, int classes, int w, int h, const char *outfile, const char *prefix)
 {
 	TAT(TATPARMS);
 
-	char *kitti_ids[] = { "car", "pedestrian", "cyclist" };
+	const char *kitti_ids[] = { "car", "pedestrian", "cyclist" };
 	FILE *fpd = 0;
 	char buffd[1024];
 	snprintf(buffd, 1024, "%s/%s/data/%s.txt", prefix, outfile, id);
@@ -689,7 +689,7 @@ static void print_kitti_detections(FILE **fps, char *id, detection *dets, int to
 	fclose(fpd);
 }
 
-static void eliminate_bdd(char *buf, char *a)
+static void eliminate_bdd(char *buf, const char *a)
 {
 	TAT(TATPARMS);
 
@@ -732,7 +732,7 @@ static void print_bdd_detections(FILE *fp, char *image_path, detection *dets, in
 {
 	TAT(TATPARMS);
 
-	char *bdd_ids[] = { "bike" , "bus" , "car" , "motor" ,"person", "rider", "traffic light", "traffic sign", "train", "truck" };
+	const char *bdd_ids[] = { "bike" , "bus" , "car" , "motor" ,"person", "rider", "traffic light", "traffic sign", "train", "truck" };
 	get_bdd_image_id(image_path);
 	int i, j;
 
@@ -763,17 +763,17 @@ static void print_bdd_detections(FILE *fp, char *image_path, detection *dets, in
 	}
 }
 
-void validate_detector(char *datacfg, char *cfgfile, char *weightfile, char *outfile)
+void validate_detector(char *datacfg, char *cfgfile, char *weightfile, const char *outfile)
 {
 	TAT(TATPARMS);
 
 	int j;
 	list *options = read_data_cfg(datacfg);
-	char *valid_images = option_find_str(options, "valid", nullptr);
-	char *name_list = option_find_str(options, "names", nullptr);
-	char *prefix = option_find_str(options, "results", "results");
+	const char *valid_images = option_find_str(options, "valid", nullptr);
+	const char *name_list = option_find_str(options, "names", nullptr);
+	const char *prefix = option_find_str(options, "results", "results");
 	char **names = get_labels(name_list);
-	char *mapf = option_find_str(options, "map", 0);
+	const char *mapf = option_find_str(options, "map", 0);
 	int *map = 0;
 	if (mapf) map = read_map(mapf);
 
@@ -803,7 +803,7 @@ void validate_detector(char *datacfg, char *cfgfile, char *weightfile, char *out
 	int classes = l.classes;
 
 	char buff[1024];
-	char *type = option_find_str(options, "eval", "voc");
+	const char *type = option_find_str(options, "eval", "voc");
 	FILE *fp = 0;
 	FILE **fps = 0;
 	int coco = 0;
@@ -813,7 +813,9 @@ void validate_detector(char *datacfg, char *cfgfile, char *weightfile, char *out
 
 	if (0 == strcmp(type, "coco"))
 	{
-		if (!outfile) outfile = "coco_results";
+        if (!outfile) {
+			outfile = "coco_results"; 
+        }
 		snprintf(buff, 1024, "%s/%s.json", prefix, outfile);
 		fp = fopen(buff, "w");
 		fprintf(fp, "[\n");
@@ -1004,7 +1006,7 @@ void validate_detector_recall(char *datacfg, char *cfgfile, char *weightfile)
 
 	//list *plist = get_paths("data/coco_val_5k.list");
 	list *options = read_data_cfg(datacfg);
-	char *valid_images = option_find_str(options, "valid", "data/train.txt");
+	const char *valid_images = option_find_str(options, "valid", "data/train.txt");
 	list *plist = get_paths(valid_images);
 	char **paths = (char **)list_to_array(plist);
 
@@ -1090,9 +1092,9 @@ float validate_detector_map(char *datacfg, char *cfgfile, char *weightfile, floa
 
 	int j;
 	list *options = read_data_cfg(datacfg);
-	char *valid_images = option_find_str(options, "valid", nullptr);
-	char *difficult_valid_images = option_find_str(options, "difficult", NULL);
-	char *name_list = option_find_str(options, "names", nullptr);
+	const char *valid_images = option_find_str(options, "valid", nullptr);
+	const char *difficult_valid_images = option_find_str(options, "difficult", NULL);
+	const char *name_list = option_find_str(options, "names", nullptr);
 	int names_size = 0;
 	char **names = get_labels_custom(name_list, &names_size); //get_labels(name_list);
 	//char *mapf = option_find_str(options, "map", 0);
@@ -1104,7 +1106,7 @@ float validate_detector_map(char *datacfg, char *cfgfile, char *weightfile, floa
 	//int initial_batch;
 	if (existing_net)
 	{
-		char *train_images = option_find_str(options, "train", nullptr);
+		const char *train_images = option_find_str(options, "train", nullptr);
 		valid_images = option_find_str(options, "valid", train_images);
 		net = *existing_net;
 		remember_network_recurrent_state(*existing_net);
@@ -1762,7 +1764,7 @@ void calc_anchors(char *datacfg, int num_of_clusters, int width, int height, int
 	float* rel_width_height_array = (float*)xcalloc(1000, sizeof(float));
 
 	list *options = read_data_cfg(datacfg);
-	char *train_images = option_find_str(options, "train", "data/train.list");
+	const char *train_images = option_find_str(options, "train", "data/train.list");
 	list *plist = get_paths(train_images);
 	int number_of_images = plist->size;
 	char **paths = (char **)list_to_array(plist);
@@ -1924,13 +1926,13 @@ void calc_anchors(char *datacfg, int num_of_clusters, int width, int height, int
 }
 
 
-void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filename, float thresh,
-	float hier_thresh, int dont_show, int ext_output, int save_labels, char *outfile, int letter_box, int benchmark_layers)
+void test_detector(const char *datacfg, char *cfgfile, char *weightfile, char *filename, float thresh,
+	float hier_thresh, int dont_show, int ext_output, int save_labels, const char *outfile, int letter_box, int benchmark_layers)
 {
 	TAT(TATPARMS);
 
 	list *options = read_data_cfg(datacfg);
-	char *name_list = option_find_str(options, "names", nullptr);
+	const char *name_list = option_find_str(options, "names", nullptr);
 	int names_size = 0;
 	char **names = get_labels_custom(name_list, &names_size); //get_labels(name_list);
 
@@ -1963,7 +1965,7 @@ void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filenam
 		{
 			file_error(outfile, DARKNET_LOC);
 		}
-		char *tmp = "[\n";
+		const char *tmp = "[\n";
 		fwrite(tmp, sizeof(char), strlen(tmp), json_file);
 	}
 	int j;
@@ -2033,11 +2035,11 @@ void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filenam
 		{
 			if (json_buf)
 			{
-				char *tmp = ", \n";
+				const char *tmp = ", \n";
 				fwrite(tmp, sizeof(char), strlen(tmp), json_file);
 			}
 			++json_image_id;
-			json_buf = detection_to_json(dets, nboxes, l.classes, names, json_image_id, input);
+			json_buf = detection_to_json(dets, nboxes, l.classes, const_cast<const char**>(names), json_image_id, input);
 
 			fwrite(json_buf, sizeof(char), strlen(json_buf), json_file);
 			free(json_buf);
@@ -2083,7 +2085,7 @@ void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filenam
 	}
 
 	if (json_file) {
-		char *tmp = "\n]";
+		const char *tmp = "\n]";
 		fwrite(tmp, sizeof(char), strlen(tmp), json_file);
 		fclose(json_file);
 	}
@@ -2105,7 +2107,7 @@ void draw_object(char *datacfg, char *cfgfile, char *weightfile, char *filename,
 	TAT(TATPARMS);
 
 	list *options = read_data_cfg(datacfg);
-	char *name_list = option_find_str(options, "names", nullptr);
+	const char *name_list = option_find_str(options, "names", nullptr);
 	int names_size = 0;
 	char **names = get_labels_custom(name_list, &names_size); //get_labels(name_list);
 
@@ -2279,11 +2281,11 @@ void run_detector(int argc, char **argv)
 	int avgframes = find_int_arg(argc, argv, "-avgframes", 3);
 	int dontdraw_bbox = find_arg(argc, argv, "-dontdraw_bbox");
 	int json_port = find_int_arg(argc, argv, "-json_port", -1);
-	char *http_post_host = find_char_arg(argc, argv, "-http_post_host", 0);
+	const char *http_post_host = find_char_arg(argc, argv, "-http_post_host", 0);
 	int time_limit_sec = find_int_arg(argc, argv, "-time_limit_sec", 0);
-	char *out_filename = find_char_arg(argc, argv, "-out_filename", 0);
-	char *outfile = find_char_arg(argc, argv, "-out", 0);
-	char *prefix = find_char_arg(argc, argv, "-prefix", 0);
+	const char *out_filename = find_char_arg(argc, argv, "-out_filename", 0);
+	const char *outfile = find_char_arg(argc, argv, "-out", 0);
+	const char *prefix = find_char_arg(argc, argv, "-prefix", 0);
 	float thresh = find_float_arg(argc, argv, "-thresh", .25);    // 0.24
 	float iou_thresh = find_float_arg(argc, argv, "-iou_thresh", .5);    // 0.5 for mAP
 	float hier_thresh = find_float_arg(argc, argv, "-hier", .5);
@@ -2296,8 +2298,8 @@ void run_detector(int argc, char **argv)
 	// and for recall mode (extended output table-like format with results for best_class fit)
 	int ext_output = find_arg(argc, argv, "-ext_output");
 	int save_labels = find_arg(argc, argv, "-save_labels");
-	char* chart_path = find_char_arg(argc, argv, "-chart", 0);
-	char *gpu_list = find_char_arg(argc, argv, "-gpus", 0);
+	const char* chart_path = find_char_arg(argc, argv, "-chart", 0);
+	const char *gpu_list = find_char_arg(argc, argv, "-gpus", 0);
 	int *gpus = 0;
 	int gpu = 0;
 	int ngpus = 0;
@@ -2370,10 +2372,10 @@ void run_detector(int argc, char **argv)
 		 */
 		list *options = read_data_cfg(datacfg);
 		int classes = option_find_int(options, "classes", 20);
-		char *name_list = option_find_str(options, "names", nullptr);
+		const char *name_list = option_find_str(options, "names", nullptr);
 		char **names = get_labels(name_list);
 
-		demo(cfg, weights, thresh, hier_thresh, cam_index, input_fn, names, classes, avgframes, frame_skip, prefix, out_filename, mjpeg_port, dontdraw_bbox, json_port, dont_show, ext_output, letter_box, time_limit_sec, http_post_host, benchmark, benchmark_layers);
+		demo(cfg, weights, thresh, hier_thresh, cam_index, input_fn, const_cast<const char**>(names), classes, avgframes, frame_skip, prefix, out_filename, mjpeg_port, dontdraw_bbox, json_port, dont_show, ext_output, letter_box, time_limit_sec, http_post_host, benchmark, benchmark_layers);
 
 		free_list_contents_kvp(options);
 		free_list(options);

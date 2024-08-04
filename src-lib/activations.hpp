@@ -12,9 +12,9 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-ACTIVATION get_activation(char *s);
+ACTIVATION get_activation(const char *s);
 
-char *get_activation_string(ACTIVATION a);
+const char *get_activation_string(ACTIVATION a);
 float activate(float x, ACTIVATION a);
 float gradient(float x, ACTIVATION a);
 void gradient_array(const float *x, const int n, const ACTIVATION a, float *delta);

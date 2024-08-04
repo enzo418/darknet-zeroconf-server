@@ -494,7 +494,7 @@ void draw_detections_v3(image im, detection *dets, int num, float thresh, char *
 	free(selected_detections);
 }
 
-void draw_detections(image im, int num, float thresh, box *boxes, float **probs, char **names, int classes)
+void draw_detections(image im, int num, float thresh, box *boxes, float **probs, const char **names, int classes)
 {
 	// wrong function!  see draw_detections_v3() instead!
 
@@ -1022,7 +1022,7 @@ int best_3d_shift(image a, image b, int min, int max)
 	return best;
 }
 
-void composite_3d(char *f1, char *f2, char *out, int delta)
+void composite_3d(char *f1, char *f2, const char *out, int delta)
 {
 	TAT(TATPARMS);
 

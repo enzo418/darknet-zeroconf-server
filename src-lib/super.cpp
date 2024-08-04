@@ -3,8 +3,8 @@
 
 void train_super(char *cfgfile, char *weightfile)
 {
-	char* train_images = "data/imagenet/imagenet1k.train.list";
-	char* backup_directory = "backup/";
+	const char* train_images = "data/imagenet/imagenet1k.train.list";
+	const char* backup_directory = "backup/";
 	srand(time(0));
 	char *base = basecfg(cfgfile);
 	printf("%s\n", base);

@@ -39,8 +39,7 @@ const int SSL = 0;
 
 #ifdef WIN32
 #include <time.h>
-
-#include "gettimeofday.h"
+#include "windows/gettimeofday.h"
 #else
 #include <sys/time.h>
 #endif
@@ -147,7 +146,7 @@ void detect(context_t& ctx, cv::Mat* img, DetectionSingleResult** out_results,
 
     if (!ctx.dontdraw_bbox) {
         draw_detections_cv_v3((mat_cv*)&new_img, dets, nboxes,
-                              ctx.prob_threshold, ctx.names, ctx.classes_n,
+                              ctx.prob_threshold, const_cast<const char**>(ctx.names), ctx.classes_n,
                               ext_output);
 
         // draw over source image - Don't we do that below to verify
@@ -867,7 +866,7 @@ int main(int argc, char** argv) {
 
     srand(2222222);
 
-    char* gpu_list = find_char_arg(argc, argv, "-gpus", 0);
+    const char* gpu_list = find_char_arg(argc, argv, "-gpus", 0);
     int* gpus = 0;
     int gpu = 0;
     int ngpus = 0;

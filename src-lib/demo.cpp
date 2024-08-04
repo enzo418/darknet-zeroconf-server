@@ -15,7 +15,7 @@ namespace
 	static auto & cfg_and_state = Darknet::CfgAndState::get();
 
 	static int demo_classes		= -1;
-	static char ** demo_names	= nullptr;
+	static const char ** demo_names	= nullptr;
 	static mat_cv ** cv_images	= nullptr;
 	static mat_cv * in_img		= nullptr;
 	static mat_cv * det_img		= nullptr;
@@ -131,8 +131,8 @@ double get_wall_time()
 	return (double)walltime.tv_sec + (double)walltime.tv_usec * .000001;
 }
 
-void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int cam_index, const char *filename, char **names, int classes, int avgframes,
-	int frame_skip, char *prefix, char *out_filename, int mjpeg_port, int dontdraw_bbox, int json_port, int dont_show, int ext_output, int letter_box_in, int time_limit_sec, char *http_post_host,
+void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int cam_index, const char *filename, const char **names, int classes, int avgframes,
+	int frame_skip, const char *prefix, const char *out_filename, int mjpeg_port, int dontdraw_bbox, int json_port, int dont_show, int ext_output, int letter_box_in, int time_limit_sec, const char *http_post_host,
 	int benchmark, int benchmark_layers)
 {
 #if 0

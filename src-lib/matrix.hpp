@@ -21,7 +21,7 @@ matrix make_matrix(int rows, int cols);
 void free_matrix(matrix & m);
 void print_matrix(matrix m);
 
-matrix csv_to_matrix(char *filename);
+matrix csv_to_matrix(const char *filename);
 void matrix_to_csv(matrix m);
 matrix hold_out_matrix(matrix *m, int n);
 float matrix_topk_accuracy(matrix truth, matrix guess, int k);

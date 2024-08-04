@@ -1,6 +1,6 @@
 #include "darknet_internal.hpp"
 
-void change_leaves(tree *t, char *leaf_list)
+void change_leaves(tree *t, const char *leaf_list)
 {
 	TAT(TATPARMS);
 
@@ -93,7 +93,7 @@ int hierarchy_top_prediction(float *predictions, tree *hier, float thresh, int s
 	return 0;
 }
 
-tree *read_tree(char *filename)
+tree *read_tree(const char *filename)
 {
 	TAT(TATPARMS);
 

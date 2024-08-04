@@ -241,7 +241,7 @@ void run_nightmare(int argc, char **argv)
 	float rotate = find_float_arg(argc, argv, "-rotate", 0);
 	float momentum = find_float_arg(argc, argv, "-momentum", .9);
 	float lambda = find_float_arg(argc, argv, "-lambda", .01);
-	char *prefix = find_char_arg(argc, argv, "-prefix", 0);
+	const char *prefix = find_char_arg(argc, argv, "-prefix", 0);
 	int reconstruct = find_arg(argc, argv, "-reconstruct");
 	int smooth_size = find_int_arg(argc, argv, "-smooth", 1);
 

@@ -59,7 +59,7 @@ void show_image_cv(image p, const char *name);
 void show_image_mat(mat_cv *mat_ptr, const char *name);
 
 // Video Writer
-write_cv *create_video_writer(char *out_filename, char c1, char c2, char c3, char c4, int fps, int width, int height, int is_color);
+write_cv *create_video_writer(const char *out_filename, char c1, char c2, char c3, char c4, int fps, int width, int height, int is_color);
 void write_frame_cv(write_cv *output_video_writer, mat_cv *mat);
 void release_video_writer(write_cv **output_video_writer);
 
@@ -87,14 +87,14 @@ void save_cv_png(mat_cv *img, const char *name);
 void save_cv_jpg(mat_cv *img, const char *name);
 
 // Draw Detection
-void draw_detections_cv_v3(mat_cv* show_img, detection *dets, int num, float thresh, char **names, int classes, int ext_output);
+void draw_detections_cv_v3(mat_cv* show_img, detection *dets, int num, float thresh, const char **names, int classes, int ext_output);
 
 /// Draw the intial Loss & Accuracy chart.  This is called once at the very start.
-mat_cv* draw_initial_train_chart(char *windows_name, float max_img_loss, int max_batches, int number_of_lines, int img_size, int dont_show, char* chart_path);
+mat_cv* draw_initial_train_chart(char *windows_name, float max_img_loss, int max_batches, int number_of_lines, int img_size, int dont_show, const char* chart_path);
 
 /// Update the Loss & Accuracy chart with the given information.  This is called repeatedly as more data is produced during training.
 void update_train_loss_chart(char *windows_name, mat_cv* img, int img_size, float avg_loss, float max_img_loss, int current_batch, int max_batches,
-    float precision, int draw_precision, char *accuracy_name, float contr_acc, int dont_show, int mjpeg_port, double time_remaining);
+    float precision, int draw_precision, const char *accuracy_name, float contr_acc, int dont_show, int mjpeg_port, double time_remaining);
 
 // Data augmentation
 image image_data_augmentation(mat_cv* mat, int w, int h,

@@ -31,7 +31,7 @@ void draw_label(image a, int r, int c, image label, const float *rgb);
 void draw_weighted_label(image a, int r, int c, image label, const float *rgb, const float alpha);
 
 /// This is still called from a few isolated places, but you're probably looking for @ref draw_detections_v3().
-void draw_detections(image im, int num, float thresh, box *boxes, float **probs, char **names, int classes);
+void draw_detections(image im, int num, float thresh, box *boxes, float **probs, const char **names, int classes);
 
 /// This is the function that is called to draw annotations on an image.
 void draw_detections_v3(image im, detection *dets, int num, float thresh, char **names, int classes, int ext_output);
@@ -53,7 +53,7 @@ void embed_image(image source, image dest, int dx, int dy);
 void distort_image(image im, float hue, float sat, float val);
 void hsv_to_rgb(image im);
 void constrain_image(image im);
-void composite_3d(char *f1, char *f2, char *out, int delta);
+void composite_3d(char *f1, char *f2, const char *out, int delta);
 int best_3d_shift_r(image a, image b, int min, int max);
 
 image grayscale_image(image im);

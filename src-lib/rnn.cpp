@@ -10,7 +10,7 @@ namespace
 }
 
 
-int *read_tokenized_data(char *filename, size_t *read)
+int *read_tokenized_data(const char *filename, size_t *read)
 {
 	TAT(TATPARMS);
 
@@ -35,7 +35,7 @@ int *read_tokenized_data(char *filename, size_t *read)
 	return d;
 }
 
-char **read_tokens(char *filename, size_t *read)
+char **read_tokens(const char *filename, size_t *read)
 {
 	TAT(TATPARMS);
 
@@ -131,7 +131,7 @@ void reset_rnn_state(network net, int b)
 	}
 }
 
-void train_char_rnn(char *cfgfile, char *weightfile, char *filename, int clear, int tokenized)
+void train_char_rnn(char *cfgfile, char *weightfile, const char *filename, int clear, int tokenized)
 {
 	TAT(TATPARMS);
 
@@ -153,7 +153,7 @@ void train_char_rnn(char *cfgfile, char *weightfile, char *filename, int clear, 
 		fclose(fp);
 	}
 
-	char* backup_directory = "backup/";
+	const char* backup_directory = "backup/";
 	char *base = basecfg(cfgfile);
 	fprintf(stderr, "%s\n", base);
 	float avg_loss = -1;
@@ -239,7 +239,7 @@ void print_symbol(int n, char **tokens)
 	}
 }
 
-void test_char_rnn(char *cfgfile, char *weightfile, int num, char *seed, float temp, int rseed, char *token_file)
+void test_char_rnn(char *cfgfile, char *weightfile, int num, const char *seed, float temp, int rseed, const char *token_file)
 {
 	TAT(TATPARMS);
 
@@ -301,7 +301,7 @@ void test_char_rnn(char *cfgfile, char *weightfile, int num, char *seed, float t
 	printf("\n");
 }
 
-void test_tactic_rnn(char *cfgfile, char *weightfile, int num, float temp, int rseed, char *token_file)
+void test_tactic_rnn(char *cfgfile, char *weightfile, int num, float temp, int rseed, const char *token_file)
 {
 	TAT(TATPARMS);
 
@@ -348,7 +348,7 @@ void test_tactic_rnn(char *cfgfile, char *weightfile, int num, float temp, int r
 	printf("\n");
 }
 
-void valid_tactic_rnn(char *cfgfile, char *weightfile, char *seed)
+void valid_tactic_rnn(char *cfgfile, char *weightfile,const char *seed)
 {
 	TAT(TATPARMS);
 
@@ -405,7 +405,7 @@ void valid_tactic_rnn(char *cfgfile, char *weightfile, char *seed)
 	}
 }
 
-void valid_char_rnn(char *cfgfile, char *weightfile, char *seed)
+void valid_char_rnn(char *cfgfile, char *weightfile, const char *seed)
 {
 	TAT(TATPARMS);
 
@@ -451,7 +451,7 @@ void valid_char_rnn(char *cfgfile, char *weightfile, char *seed)
 	}
 }
 
-void vec_char_rnn(char *cfgfile, char *weightfile, char *seed)
+void vec_char_rnn(char *cfgfile, char *weightfile, const char *seed)
 {
 	TAT(TATPARMS);
 
@@ -510,14 +510,14 @@ void run_char_rnn(int argc, char **argv)
 		fprintf(stderr, "usage: %s %s [train/test/valid] [cfg] [weights (optional)]\n", argv[0], argv[1]);
 		return;
 	}
-	char *filename = find_char_arg(argc, argv, "-file", "data/shakespeare.txt");
-	char *seed = find_char_arg(argc, argv, "-seed", "\n\n");
+	const char *filename = find_char_arg(argc, argv, "-file", "data/shakespeare.txt");
+	const char *seed = find_char_arg(argc, argv, "-seed", "\n\n");
 	int len = find_int_arg(argc, argv, "-len", 1000);
 	float temp = find_float_arg(argc, argv, "-temp", .7);
 	int rseed = find_int_arg(argc, argv, "-srand", time(0));
 	int clear = find_arg(argc, argv, "-clear");
 	int tokenized = find_arg(argc, argv, "-tokenized");
-	char *tokens = find_char_arg(argc, argv, "-tokens", 0);
+	const char *tokens = find_char_arg(argc, argv, "-tokens", 0);
 
 	char *cfg = argv[3];
 	char *weights = (argc > 4) ? argv[4] : 0;

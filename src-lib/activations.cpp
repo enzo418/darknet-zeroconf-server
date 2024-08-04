@@ -12,7 +12,7 @@
 //#include <string.h>
 //#include <float.h>
 
-char *get_activation_string(ACTIVATION a)
+const char *get_activation_string(ACTIVATION a)
 {
 	TAT(TATPARMS);
 
@@ -54,7 +54,7 @@ char *get_activation_string(ACTIVATION a)
 	return "relu";
 }
 
-ACTIVATION get_activation(char *s)
+ACTIVATION get_activation(const char *s)
 {
 	TAT(TATPARMS);
 

@@ -350,7 +350,7 @@ void show_image_mat(mat_cv *mat_ptr, const char *name)
 // ====================================================================
 
 
-write_cv *create_video_writer(char *out_filename, char c1, char c2, char c3, char c4, int fps, int width, int height, int is_color)
+write_cv *create_video_writer(const char *out_filename, char c1, char c2, char c3, char c4, int fps, int width, int height, int is_color)
 {
 	TAT(TATPARMS);
 
@@ -842,7 +842,7 @@ void save_cv_jpg(mat_cv *img_src, const char *name)
 // ====================================================================
 
 
-void draw_detections_cv_v3(mat_cv* mat, detection *dets, int num, float thresh, char **names, int classes, int ext_output)
+void draw_detections_cv_v3(mat_cv* mat, detection *dets, int num, float thresh, const char **names, int classes, int ext_output)
 {
 	TAT(TATPARMS);
 
@@ -993,7 +993,7 @@ void draw_detections_cv_v3(mat_cv* mat, detection *dets, int num, float thresh, 
 // ====================================================================
 
 
-mat_cv* draw_initial_train_chart(char *windows_name, float max_img_loss, int max_batches, int number_of_lines, int img_size, int dont_show, char* chart_path)
+mat_cv* draw_initial_train_chart(char *windows_name, float max_img_loss, int max_batches, int number_of_lines, int img_size, int dont_show, const char* chart_path)
 {
 	TAT(TATPARMS);
 
@@ -1111,7 +1111,7 @@ mat_cv* draw_initial_train_chart(char *windows_name, float max_img_loss, int max
 
 
 void update_train_loss_chart(char *windows_name, mat_cv* img_src, int img_size, float avg_loss, float max_img_loss, int current_batch, int max_batches,
-	float precision, int draw_precision, char *accuracy_name, float contr_acc, int dont_show, int mjpeg_port, double time_remaining)
+	float precision, int draw_precision, const char *accuracy_name, float contr_acc, int dont_show, int mjpeg_port, double time_remaining)
 {
 	TAT(TATPARMS);
 

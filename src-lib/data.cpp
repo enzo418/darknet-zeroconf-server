@@ -40,7 +40,7 @@ namespace
 }
 
 
-list *get_paths(char *filename)
+list *get_paths(const char *filename)
 {
 	TAT(TATPARMS);
 
@@ -130,7 +130,7 @@ char **get_random_paths(char **paths, int n, int m)
 	return get_random_paths_custom(paths, n, m, 0);
 }
 
-char **find_replace_paths(char **paths, int n, char *find, char *replace)
+char **find_replace_paths(char **paths, int n, const char *find, const char *replace)
 {
 	TAT(TATPARMS);
 
@@ -599,7 +599,7 @@ void fill_truth(char *path, char **labels, int k, float *truth)
 	}
 }
 
-void fill_truth_smooth(char *path, char **labels, int k, float *truth, float label_smooth_eps)
+void fill_truth_smooth(char *path, const char **labels, int k, float *truth, float label_smooth_eps)
 {
 	TAT(TATPARMS);
 
@@ -693,7 +693,7 @@ int find_max(float *arr, int size)
 	return n;
 }
 
-matrix load_labels_paths(char **paths, int n, char **labels, int k, tree *hierarchy, float label_smooth_eps, int contrastive)
+matrix load_labels_paths(char **paths, int n, const char **labels, int k, tree *hierarchy, float label_smooth_eps, int contrastive)
 {
 	TAT(TATPARMS);
 
@@ -769,7 +769,7 @@ matrix load_tags_paths(char **paths, int n, int k)
 	return y;
 }
 
-char **get_labels_custom(char *filename, int *size)
+char **get_labels_custom(const char *filename, int *size)
 {
 	TAT(TATPARMS);
 
@@ -783,7 +783,7 @@ char **get_labels_custom(char *filename, int *size)
 	return labels;
 }
 
-char **get_labels(char *filename)
+char **get_labels(const char *filename)
 {
 	return get_labels_custom(filename, NULL);
 }
@@ -1584,13 +1584,13 @@ void Darknet::load_single_image_data(load_args args)
 		case OLD_CLASSIFICATION_DATA:
 		{
 			// 2024:  used in classifier.cpp
-			*args.d = load_data_old(args.paths, args.n, args.m, args.labels, args.classes, args.w, args.h, args.c);
+			*args.d = load_data_old(args.paths, args.n, args.m, const_cast<const char**>(args.labels), args.classes, args.w, args.h, args.c);
 			break;
 		}
 		case CLASSIFICATION_DATA:
 		{
 			// 2024:  used in captcha.cpp and classifier.cpp
-			*args.d = load_data_augment(args.paths, args.n, args.m, args.labels, args.classes, args.hierarchy, args.flip, args.min, args.max, args.w, args.h, args.c, args.angle, args.aspect, args.hue, args.saturation, args.exposure, args.mixup, args.blur, args.show_imgs, args.label_smooth_eps, args.contrastive);
+			*args.d = load_data_augment(args.paths, args.n, args.m, const_cast<const char**>(args.labels), args.classes, args.hierarchy, args.flip, args.min, args.max, args.w, args.h, args.c, args.angle, args.aspect, args.hue, args.saturation, args.exposure, args.mixup, args.blur, args.show_imgs, args.label_smooth_eps, args.contrastive);
 			break;
 		}
 		case SUPER_DATA:
@@ -1795,7 +1795,7 @@ data load_data_writing(char **paths, int n, int m, int w, int h, int c, int out_
 }
 
 
-data load_data_old(char **paths, int n, int m, char **labels, int k, int w, int h, int c)
+data load_data_old(char **paths, int n, int m, const char **labels, int k, int w, int h, int c)
 {
 	TAT(TATPARMS);
 
@@ -1845,7 +1845,7 @@ data load_data_super(char **paths, int n, int m, int w, int h, int c, int scale)
 	return d;
 }
 
-data load_data_augment(char **paths, int n, int m, char **labels, int k, tree *hierarchy, int use_flip, int min, int max, int w, int h, int c, float angle,
+data load_data_augment(char **paths, int n, int m, const char **labels, int k, tree *hierarchy, int use_flip, int min, int max, int w, int h, int c, float angle,
 	float aspect, float hue, float saturation, float exposure, int use_mixup, int use_blur, int show_imgs, float label_smooth_eps, int contrastive)
 {
 	TAT(TATPARMS);
@@ -2151,7 +2151,7 @@ data load_categorical_data_csv(char *filename, int target, int k)
 	return d;
 }
 
-data load_cifar10_data(char *filename)
+data load_cifar10_data(const char *filename)
 {
 	TAT(TATPARMS);
 

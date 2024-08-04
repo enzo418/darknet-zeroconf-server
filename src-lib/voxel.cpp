@@ -34,8 +34,8 @@ void extract_voxel(char *lfile, char *rfile, char *prefix)
 
 void train_voxel(char *cfgfile, char *weightfile)
 {
-	char* train_images = "data/imagenet/imagenet1k.train.list";
-	char* backup_directory = "backup/";
+	const char* train_images = "data/imagenet/imagenet1k.train.list";
+	const char* backup_directory = "backup/";
 	srand(time(0));
 	char *base = basecfg(cfgfile);
 	printf("%s\n", base);

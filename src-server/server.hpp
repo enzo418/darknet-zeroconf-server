@@ -92,7 +92,7 @@ struct context_t {
 
     int classes_n;  // number of classes
 
-    char* name_list;
+    const char* name_list;
     char** names;
 
     float prob_threshold {0.25};  // probability threshold for detection

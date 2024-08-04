@@ -1,7 +1,7 @@
 #include "option_list.hpp"
 #include "darknet_internal.hpp"
 
-list *read_data_cfg(char *filename)
+list *read_data_cfg(const char *filename)
 {
 	TAT(TATPARMS);
 
@@ -117,7 +117,7 @@ metadata get_metadata(char *file)
 	metadata m = { 0 };
 	list *options = read_data_cfg(file);
 
-	char *name_list = option_find_str(options, "names", 0);
+	const char *name_list = option_find_str(options, "names", 0);
 	if (!name_list) name_list = option_find_str(options, "labels", 0);
 	if (!name_list) {
 		fprintf(stderr, "No names or labels found\n");
@@ -224,7 +224,7 @@ char *option_find(list *l, const char *key)
 	return nullptr;
 }
 
-char *option_find_str(list *l, char *key, char *def)
+const char *option_find_str(list *l, const char *key, const char *def)
 {
 	TAT(TATPARMS);
 
@@ -234,7 +234,7 @@ char *option_find_str(list *l, char *key, char *def)
 	return def;
 }
 
-char *option_find_str_quiet(list *l, char *key, char *def)
+const char *option_find_str_quiet(list *l, const char *key, const char *def)
 {
 	TAT(TATPARMS);
 
@@ -243,7 +243,7 @@ char *option_find_str_quiet(list *l, char *key, char *def)
 	return def;
 }
 
-int option_find_int(list *l, char *key, int def)
+int option_find_int(list *l, const char *key, int def)
 {
 	TAT(TATPARMS);
 
@@ -253,7 +253,7 @@ int option_find_int(list *l, char *key, int def)
 	return def;
 }
 
-int option_find_int_quiet(list *l, char *key, int def)
+int option_find_int_quiet(list *l, const char *key, int def)
 {
 	TAT(TATPARMS);
 
@@ -262,7 +262,7 @@ int option_find_int_quiet(list *l, char *key, int def)
 	return def;
 }
 
-float option_find_float_quiet(list *l, char *key, float def)
+float option_find_float_quiet(list *l, const char *key, float def)
 {
 	TAT(TATPARMS);
 
@@ -271,7 +271,7 @@ float option_find_float_quiet(list *l, char *key, float def)
 	return def;
 }
 
-float option_find_float(list *l, char *key, float def)
+float option_find_float(list *l, const char *key, float def)
 {
 	TAT(TATPARMS);
 

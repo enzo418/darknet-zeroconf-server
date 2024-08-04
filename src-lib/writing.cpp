@@ -2,7 +2,7 @@
 
 void train_writing(char *cfgfile, char *weightfile)
 {
-	char* backup_directory = "backup/";
+	const char* backup_directory = "backup/";
 	srand(time(0));
 	float avg_loss = -1;
 	char *base = basecfg(cfgfile);

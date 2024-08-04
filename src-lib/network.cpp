@@ -192,7 +192,7 @@ float get_current_rate(network net)
 }
 
 
-char * get_layer_string(LAYER_TYPE a)
+const char * get_layer_string(LAYER_TYPE a)
 {
 	TAT(TATPARMS);
 
@@ -1324,7 +1324,7 @@ void free_batch_detections(det_num_pair *det_num_pairs, int n)
 //  {"class_id":14, "name":"bird", "relative coordinates":{"center_x":0.398831, "center_y":0.630203, "width":0.057455, "height":0.020396}, "confidence":0.265497}
 // ]
 //},
-char * detection_to_json(detection *dets, int nboxes, int classes, char **names, long long int frame_id, char *filename)
+char * detection_to_json(detection *dets, int nboxes, int classes, const char **names, long long int frame_id, char *filename)
 {
 	TAT(TATPARMS);
 

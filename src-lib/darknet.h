@@ -1026,7 +1026,7 @@ void free_detections(detection *dets, int n);
 void free_batch_detections(det_num_pair *det_num_pairs, int n);
 void fuse_conv_batchnorm(network net);
 void calculate_binary_weights(network net);
-char *detection_to_json(detection *dets, int nboxes, int classes, char **names, long long int frame_id, char *filename);
+char *detection_to_json(detection *dets, int nboxes, int classes, const char **names, long long int frame_id, char *filename);
 
 layer* get_network_layer(network* net, int i);
 detection *make_network_boxes(network *net, float thresh, int *num);
@@ -1034,8 +1034,8 @@ void reset_rnn(network *net);
 float *network_predict_image(network *net, image im);
 float *network_predict_image_letterbox(network *net, image im);
 float validate_detector_map(char *datacfg, char *cfgfile, char *weightfile, float thresh_calc_avg_iou, const float iou_thresh, const int map_points, int letter_box, network *existing_net);
-void train_detector(char *datacfg, char *cfgfile, char *weightfile, int *gpus, int ngpus, int clear, int dont_show, int calc_map, float thresh, float iou_thresh, int mjpeg_port, int show_imgs, int benchmark_layers, char* chart_path);
-void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filename, float thresh, float hier_thresh, int dont_show, int ext_output, int save_labels, char *outfile, int letter_box, int benchmark_layers);
+void train_detector(char *datacfg, char *cfgfile, char *weightfile, int *gpus, int ngpus, int clear, int dont_show, int calc_map, float thresh, float iou_thresh, int mjpeg_port, int show_imgs, int benchmark_layers, const char* chart_path);
+void test_detector(const char *datacfg, char *cfgfile, char *weightfile, char *filename, float thresh, float hier_thresh, int dont_show, int ext_output, int save_labels, const char *outfile, int letter_box, int benchmark_layers);
 int network_width(network *net);
 int network_height(network *net);
 void optimize_picture(network *net, image orig, int max_layer, float scale, float rate, float thresh, int norm);
@@ -1069,7 +1069,7 @@ void free_ptrs(void **ptrs, int n);
 void top_k(float *a, int n, int k, int *index);
 
 // tree.h
-tree *read_tree(char *filename);
+tree *read_tree(const char*filename);
 
 // option_list.h
 metadata get_metadata(char *file);

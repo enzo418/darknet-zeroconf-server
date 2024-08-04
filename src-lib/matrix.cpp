@@ -129,7 +129,7 @@ float *pop_column(matrix *m, int c)
 	return col;
 }
 
-matrix csv_to_matrix(char *filename)
+matrix csv_to_matrix(const char *filename)
 {
 	TAT(TATPARMS);
 

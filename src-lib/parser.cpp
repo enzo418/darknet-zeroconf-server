@@ -22,7 +22,7 @@ typedef struct{
 	list *options;
 }section;
 
-list *read_cfg(char *filename);
+list *read_cfg(const char *filename);
 
 LAYER_TYPE string_to_layer_type(char * type)
 {
@@ -130,7 +130,7 @@ local_layer parse_local(list *options, size_params params)
 	int size = option_find_int(options, "size",1);
 	int stride = option_find_int(options, "stride",1);
 	int pad = option_find_int(options, "pad",0);
-	char *activation_s = option_find_str(options, "activation", "logistic");
+	const char *activation_s = option_find_str(options, "activation", "logistic");
 	ACTIVATION activation = get_activation(activation_s);
 
 	int batch,h,w,c;
@@ -175,7 +175,7 @@ convolutional_layer parse_convolutional(list *options, size_params params)
 	int padding = option_find_int_quiet(options, "padding",0);
 	if(pad) padding = size/2;
 
-	char *activation_s = option_find_str(options, "activation", "logistic");
+	const char *activation_s = option_find_str(options, "activation", "logistic");
 	ACTIVATION activation = get_activation(activation_s);
 
 	int assisted_excitation = option_find_float_quiet(options, "assisted_excitation", 0);
@@ -252,7 +252,7 @@ layer parse_crnn(list *options, size_params params)
 	int output_filters = option_find_int(options, "output",1);
 	int hidden_filters = option_find_int(options, "hidden",1);
 	int groups = option_find_int_quiet(options, "groups", 1);
-	char *activation_s = option_find_str(options, "activation", "logistic");
+	const char *activation_s = option_find_str(options, "activation", "logistic");
 	ACTIVATION activation = get_activation(activation_s);
 	int batch_normalize = option_find_int_quiet(options, "batch_normalize", 0);
 	int xnor = option_find_int_quiet(options, "xnor", 0);
@@ -270,7 +270,7 @@ layer parse_rnn(list *options, size_params params)
 
 	int output = option_find_int(options, "output",1);
 	int hidden = option_find_int(options, "hidden",1);
-	char *activation_s = option_find_str(options, "activation", "logistic");
+	const char *activation_s = option_find_str(options, "activation", "logistic");
 	ACTIVATION activation = get_activation(activation_s);
 	int batch_normalize = option_find_int_quiet(options, "batch_normalize", 0);
 	int logistic = option_find_int_quiet(options, "logistic", 0);
@@ -320,7 +320,7 @@ layer parse_conv_lstm(list *options, size_params params)
 
 	int output_filters = option_find_int(options, "output", 1);
 	int groups = option_find_int_quiet(options, "groups", 1);
-	char *activation_s = option_find_str(options, "activation", "linear");
+	const char *activation_s = option_find_str(options, "activation", "linear");
 	ACTIVATION activation = get_activation(activation_s);
 	int batch_normalize = option_find_int_quiet(options, "batch_normalize", 0);
 	int xnor = option_find_int_quiet(options, "xnor", 0);
@@ -332,7 +332,7 @@ layer parse_conv_lstm(list *options, size_params params)
 	l.state_constrain = option_find_int_quiet(options, "state_constrain", params.time_steps * 32);
 	l.shortcut = option_find_int_quiet(options, "shortcut", 0);
 
-	char *lstm_activation_s = option_find_str(options, "lstm_activation", "tanh");
+	const char *lstm_activation_s = option_find_str(options, "lstm_activation", "tanh");
 	l.lstm_activation = get_activation(lstm_activation_s);
 	l.time_normalizer = option_find_float_quiet(options, "time_normalizer", 1.0);
 
@@ -353,7 +353,7 @@ connected_layer parse_connected(list *options, size_params params)
 	TAT(TATPARMS);
 
 	int output = option_find_int(options, "output",1);
-	char *activation_s = option_find_str(options, "activation", "logistic");
+	const char *activation_s = option_find_str(options, "activation", "logistic");
 	ACTIVATION activation = get_activation(activation_s);
 	int batch_normalize = option_find_int_quiet(options, "batch_normalize", 0);
 
@@ -369,8 +369,8 @@ softmax_layer parse_softmax(list *options, size_params params)
 	int groups = option_find_int_quiet(options, "groups", 1);
 	softmax_layer layer = make_softmax_layer(params.batch, params.inputs, groups);
 	layer.temperature = option_find_float_quiet(options, "temperature", 1);
-	char *tree_file = option_find_str(options, "tree", 0);
-	if (tree_file) layer.softmax_tree = read_tree(tree_file);
+	const char *tree_file = option_find_str(options, "tree", 0);
+    if (tree_file) layer.softmax_tree = read_tree(tree_file);
 	layer.w = params.w;
 	layer.h = params.h;
 	layer.c = params.c;
@@ -402,7 +402,7 @@ contrastive_layer parse_contrastive(list *options, size_params params)
 	return layer;
 }
 
-int *parse_yolo_mask(char *a, int *num)
+int *parse_yolo_mask(const char *a, int *num)
 {
 	TAT(TATPARMS);
 
@@ -426,7 +426,7 @@ int *parse_yolo_mask(char *a, int *num)
 	return mask;
 }
 
-float *get_classes_multipliers(char *cpc, const int classes, const float max_delta)
+float *get_classes_multipliers(const char *cpc, const int classes, const float max_delta)
 {
 	TAT(TATPARMS);
 
@@ -476,7 +476,7 @@ layer parse_yolo(list *options, size_params params)
 	int classes = option_find_int(options, "classes", 20);
 	int total = option_find_int(options, "num", 1);
 	int num = total;
-	char *a = option_find_str(options, "mask", 0);
+	const char *a = option_find_str(options, "mask", 0);
 	int *mask = parse_yolo_mask(a, &num);
 	int max_boxes = option_find_int_quiet(options, "max", 200);
 	layer l = make_yolo_layer(params.batch, params.w, params.h, num, total, mask, classes, max_boxes);
@@ -489,7 +489,7 @@ layer parse_yolo(list *options, size_params params)
 	l.show_details = cfg_and_state.is_verbose ? 1 : 0;
 
 	l.max_delta = option_find_float_quiet(options, "max_delta", FLT_MAX);   // set 10
-	char *cpc = option_find_str(options, "counters_per_class", 0);
+	const char *cpc = option_find_str(options, "counters_per_class", 0);
 	l.classes_multipliers = get_classes_multipliers(cpc, classes, l.max_delta);
 
 	l.label_smooth_eps = option_find_float_quiet(options, "label_smooth_eps", 0.0f);
@@ -500,7 +500,7 @@ layer parse_yolo(list *options, size_params params)
 	l.obj_normalizer = option_find_float_quiet(options, "obj_normalizer", 1);
 	l.cls_normalizer = option_find_float_quiet(options, "cls_normalizer", 1);
 	l.delta_normalizer = option_find_float_quiet(options, "delta_normalizer", 1);
-	char *iou_loss = option_find_str_quiet(options, "iou_loss", "mse");   //  "iou");
+	const char *iou_loss = option_find_str_quiet(options, "iou_loss", "mse");   //  "iou");
 
 	if (strcmp(iou_loss, "mse") == 0) l.iou_loss = MSE;
 	else if (strcmp(iou_loss, "giou") == 0) l.iou_loss = GIOU;
@@ -510,7 +510,7 @@ layer parse_yolo(list *options, size_params params)
 	fprintf(stderr, "[yolo] params: iou loss: %s (%d), iou_norm: %2.2f, obj_norm: %2.2f, cls_norm: %2.2f, delta_norm: %2.2f, scale_x_y: %2.2f\n",
 		iou_loss, l.iou_loss, l.iou_normalizer, l.obj_normalizer, l.cls_normalizer, l.delta_normalizer, l.scale_x_y);
 
-	char *iou_thresh_kind_str = option_find_str_quiet(options, "iou_thresh_kind", "iou");
+	const char *iou_thresh_kind_str = option_find_str_quiet(options, "iou_thresh_kind", "iou");
 	if (strcmp(iou_thresh_kind_str, "iou") == 0) l.iou_thresh_kind = IOU;
 	else if (strcmp(iou_thresh_kind_str, "giou") == 0) l.iou_thresh_kind = GIOU;
 	else if (strcmp(iou_thresh_kind_str, "diou") == 0) l.iou_thresh_kind = DIOU;
@@ -521,7 +521,7 @@ layer parse_yolo(list *options, size_params params)
 	}
 
 	l.beta_nms = option_find_float_quiet(options, "beta_nms", 0.6);
-	char *nms_kind = option_find_str_quiet(options, "nms_kind", "default");
+	const char *nms_kind = option_find_str_quiet(options, "nms_kind", "default");
 	if (strcmp(nms_kind, "default") == 0) l.nms_kind = DEFAULT_NMS;
 	else {
 		if (strcmp(nms_kind, "greedynms") == 0) l.nms_kind = GREEDY_NMS;
@@ -559,7 +559,7 @@ layer parse_yolo(list *options, size_params params)
 		}
 	}
 
-	char *map_file = option_find_str(options, "map", 0);
+	const char *map_file = option_find_str(options, "map", 0);
 	if (map_file) l.map = read_map(map_file);
 
 	a = option_find_str(options, "anchors", 0);
@@ -581,7 +581,7 @@ layer parse_yolo(list *options, size_params params)
 }
 
 
-int *parse_gaussian_yolo_mask(char *a, int *num) // Gaussian_YOLOv3
+int *parse_gaussian_yolo_mask(const char *a, int *num) // Gaussian_YOLOv3
 {
 	TAT(TATPARMS);
 
@@ -615,7 +615,7 @@ layer parse_gaussian_yolo(list *options, size_params params) // Gaussian_YOLOv3
 	int total = option_find_int(options, "num", 1);
 	int num = total;
 
-	char *a = option_find_str(options, "mask", 0);
+	const char *a = option_find_str(options, "mask", 0);
 	int *mask = parse_gaussian_yolo_mask(a, &num);
 	layer l = make_gaussian_yolo_layer(params.batch, params.w, params.h, num, total, mask, classes, max_boxes);
 	if (l.outputs != params.inputs)
@@ -624,7 +624,7 @@ layer parse_gaussian_yolo(list *options, size_params params) // Gaussian_YOLOv3
 	}
 	//assert(l.outputs == params.inputs);
 	l.max_delta = option_find_float_quiet(options, "max_delta", FLT_MAX);   // set 10
-	char *cpc = option_find_str(options, "counters_per_class", 0);
+	const char *cpc = option_find_str(options, "counters_per_class", 0);
 	l.classes_multipliers = get_classes_multipliers(cpc, classes, l.max_delta);
 
 	l.label_smooth_eps = option_find_float_quiet(options, "label_smooth_eps", 0.0f);
@@ -635,7 +635,7 @@ layer parse_gaussian_yolo(list *options, size_params params) // Gaussian_YOLOv3
 	l.obj_normalizer = option_find_float_quiet(options, "obj_normalizer", 1.0);
 	l.cls_normalizer = option_find_float_quiet(options, "cls_normalizer", 1);
 	l.delta_normalizer = option_find_float_quiet(options, "delta_normalizer", 1);
-	char *iou_loss = option_find_str_quiet(options, "iou_loss", "mse");   //  "iou");
+	const char *iou_loss = option_find_str_quiet(options, "iou_loss", "mse");   //  "iou");
 
 	if (strcmp(iou_loss, "mse") == 0) l.iou_loss = MSE;
 	else if (strcmp(iou_loss, "giou") == 0) l.iou_loss = GIOU;
@@ -643,7 +643,7 @@ layer parse_gaussian_yolo(list *options, size_params params) // Gaussian_YOLOv3
 	else if (strcmp(iou_loss, "ciou") == 0) l.iou_loss = CIOU;
 	else l.iou_loss = IOU;
 
-	char *iou_thresh_kind_str = option_find_str_quiet(options, "iou_thresh_kind", "iou");
+	const char *iou_thresh_kind_str = option_find_str_quiet(options, "iou_thresh_kind", "iou");
 	if (strcmp(iou_thresh_kind_str, "iou") == 0) l.iou_thresh_kind = IOU;
 	else if (strcmp(iou_thresh_kind_str, "giou") == 0) l.iou_thresh_kind = GIOU;
 	else if (strcmp(iou_thresh_kind_str, "diou") == 0) l.iou_thresh_kind = DIOU;
@@ -654,7 +654,7 @@ layer parse_gaussian_yolo(list *options, size_params params) // Gaussian_YOLOv3
 	}
 
 	l.beta_nms = option_find_float_quiet(options, "beta_nms", 0.6);
-	char *nms_kind = option_find_str_quiet(options, "nms_kind", "default");
+    const char* nms_kind = option_find_str_quiet(options, "nms_kind", "default");
 	if (strcmp(nms_kind, "default") == 0) l.nms_kind = DEFAULT_NMS;
 	else {
 		if (strcmp(nms_kind, "greedynms") == 0) l.nms_kind = GREEDY_NMS;
@@ -664,7 +664,7 @@ layer parse_gaussian_yolo(list *options, size_params params) // Gaussian_YOLOv3
 		printf("nms_kind: %s (%d), beta = %f \n", nms_kind, l.nms_kind, l.beta_nms);
 	}
 
-	char *yolo_point = option_find_str_quiet(options, "yolo_point", "center");
+	const char *yolo_point = option_find_str_quiet(options, "yolo_point", "center");
 	if (strcmp(yolo_point, "left_top") == 0) l.yolo_point = YOLO_LEFT_TOP;
 	else if (strcmp(yolo_point, "right_bottom") == 0) l.yolo_point = YOLO_RIGHT_BOTTOM;
 	else l.yolo_point = YOLO_CENTER;
@@ -680,7 +680,7 @@ layer parse_gaussian_yolo(list *options, size_params params) // Gaussian_YOLOv3
 	l.iou_thresh = option_find_float_quiet(options, "iou_thresh", 1); // recommended to use iou_thresh=0.213 in [yolo]
 	l.random = option_find_float_quiet(options, "random", 0);
 
-	char *map_file = option_find_str(options, "map", 0);
+	const char* map_file = option_find_str(options, "map", 0);
 	if (map_file) l.map = read_map(map_file);
 
 	a = option_find_str(options, "anchors", 0);
@@ -738,12 +738,12 @@ layer parse_region(list *options, size_params params)
 	l.class_scale = option_find_float(options, "class_scale", 1);
 	l.bias_match = option_find_int_quiet(options, "bias_match",0);
 
-	char *tree_file = option_find_str(options, "tree", 0);
+	const char* tree_file = option_find_str(options, "tree", 0);
 	if (tree_file) l.softmax_tree = read_tree(tree_file);
-	char *map_file = option_find_str(options, "map", 0);
+    const char* map_file = option_find_str(options, "map", 0);
 	if (map_file) l.map = read_map(map_file);
 
-	char *a = option_find_str(options, "anchors", 0);
+	const char* a = option_find_str(options, "anchors", 0);
 	if(a){
 		int len = strlen(a);
 		int n = 1;
@@ -790,7 +790,7 @@ cost_layer parse_cost(list *options, size_params params)
 {
 	TAT(TATPARMS);
 
-	char *type_s = option_find_str(options, "type", "sse");
+	const char* type_s = option_find_str(options, "type", "sse");
 	COST_TYPE type = get_cost_type(type_s);
 	float scale = option_find_float_quiet(options, "scale",1);
 	cost_layer layer = make_cost_layer(params.batch, params.inputs, type, scale);
@@ -996,10 +996,10 @@ layer parse_shortcut(list *options, size_params params, network net)
 {
 	TAT(TATPARMS);
 
-	char *activation_s = option_find_str(options, "activation", "linear");
+	const char *activation_s = option_find_str(options, "activation", "linear");
 	ACTIVATION activation = get_activation(activation_s);
 
-	char *weights_type_str = option_find_str_quiet(options, "weights_type", "none");
+	const char *weights_type_str = option_find_str_quiet(options, "weights_type", "none");
 	WEIGHTS_TYPE_T weights_type = NO_WEIGHTS;
 	if(strcmp(weights_type_str, "per_feature") == 0 || strcmp(weights_type_str, "per_layer") == 0) weights_type = PER_FEATURE;
 	else if (strcmp(weights_type_str, "per_channel") == 0) weights_type = PER_CHANNEL;
@@ -1008,7 +1008,7 @@ layer parse_shortcut(list *options, size_params params, network net)
 		darknet_fatal_error(DARKNET_LOC, "incorrect weights_type=%s, use one of: none, per_feature, or per_channel", weights_type_str);
 	}
 
-	char *weights_normalization_str = option_find_str_quiet(options, "weights_normalization", "none");
+	const char *weights_normalization_str = option_find_str_quiet(options, "weights_normalization", "none");
 	WEIGHTS_NORMALIZATION_T weights_normalization = NO_NORMALIZATION;
 	if (strcmp(weights_normalization_str, "relu") == 0 || strcmp(weights_normalization_str, "avg_relu") == 0) weights_normalization = RELU_NORMALIZATION;
 	else if (strcmp(weights_normalization_str, "softmax") == 0) weights_normalization = SOFTMAX_NORMALIZATION;
@@ -1086,7 +1086,7 @@ layer parse_scale_channels(list *options, size_params params, network net)
 
 	layer s = make_scale_channels_layer(batch, index, params.w, params.h, params.c, from.out_w, from.out_h, from.out_c, scale_wh);
 
-	char *activation_s = option_find_str_quiet(options, "activation", "linear");
+	const char *activation_s = option_find_str_quiet(options, "activation", "linear");
 	ACTIVATION activation = get_activation(activation_s);
 	s.activation = activation;
 	if (activation == SWISH || activation == MISH) {
@@ -1108,7 +1108,7 @@ layer parse_sam(list *options, size_params params, network net)
 
 	layer s = make_sam_layer(batch, index, params.w, params.h, params.c, from.out_w, from.out_h, from.out_c);
 
-	char *activation_s = option_find_str_quiet(options, "activation", "linear");
+	const char *activation_s = option_find_str_quiet(options, "activation", "linear");
 	ACTIVATION activation = get_activation(activation_s);
 	s.activation = activation;
 	if (activation == SWISH || activation == MISH) {
@@ -1135,7 +1135,7 @@ layer parse_activation(list *options, size_params params)
 {
 	TAT(TATPARMS);
 
-	char *activation_s = option_find_str(options, "activation", "linear");
+	const char *activation_s = option_find_str(options, "activation", "linear");
 	ACTIVATION activation = get_activation(activation_s);
 
 	layer l = make_activation_layer(params.batch, params.inputs, activation);
@@ -1227,7 +1227,7 @@ route_layer parse_route(list *options, size_params params)
 	return layer;
 }
 
-learning_rate_policy get_policy(char *s)
+learning_rate_policy get_policy(const char *s)
 {
 	TAT(TATPARMS);
 
@@ -1335,7 +1335,7 @@ void parse_net_options(list *options, network *net)
 		darknet_fatal_error(DARKNET_LOC, "no input parameters supplied");
 	}
 
-	char *policy_s = option_find_str(options, "policy", "constant");
+	const char *policy_s = option_find_str(options, "policy", "constant");
 	net->policy = get_policy(policy_s);
 	net->burn_in = option_find_int_quiet(options, "burn_in", 0);
 #ifdef GPU
@@ -1449,14 +1449,14 @@ void set_train_only_bn(network net)
 	}
 }
 
-network parse_network_cfg(char *filename)
+network parse_network_cfg(const char *filename)
 {
 	TAT(TATPARMS);
 
 	return parse_network_cfg_custom(filename, 0, 0);
 }
 
-network parse_network_cfg_custom(char *filename, int batch, int time_steps)
+network parse_network_cfg_custom(const char *filename, int batch, int time_steps)
 {
 	TAT(TATPARMS);
 
@@ -1950,7 +1950,7 @@ network parse_network_cfg_custom(char *filename, int batch, int time_steps)
 
 
 
-list *read_cfg(char *filename)
+list *read_cfg(const char *filename)
 {
 	TAT(TATPARMS);
 
@@ -2504,7 +2504,7 @@ void load_implicit_weights(layer l, FILE *fp)
 #endif
 }
 
-void load_weights_upto(network *net, char *filename, int cutoff)
+void load_weights_upto(network *net, const char *filename, int cutoff)
 {
 	TAT(TATPARMS);
 
@@ -2621,7 +2621,7 @@ void load_weights_upto(network *net, char *filename, int cutoff)
 	fclose(fp);
 }
 
-void load_weights(network *net, char *filename)
+void load_weights(network *net, const char *filename)
 {
 	TAT(TATPARMS);
 

@@ -29,7 +29,7 @@ char *fgetgo(FILE *fp)
     return line;
 }
 
-moves load_go_moves(char *filename)
+moves load_go_moves(const char *filename)
 {
     moves m;
     m.n = 128;
@@ -126,7 +126,7 @@ void train_go(char *cfgfile, char *weightfile)
     }
     printf("Learning Rate: %g, Momentum: %g, Decay: %g\n", net.learning_rate, net.momentum, net.decay);
 
-    char* backup_directory = "backup/";
+    const char* backup_directory = "backup/";
 
     char buff[256];
     float* board = (float*)xcalloc(19 * 19 * net.batch, sizeof(float));

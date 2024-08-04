@@ -1,14 +1,14 @@
 #include "darknet_internal.hpp"
 #include "demo.hpp"
 
-char *voc_names[] = {"aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair", "cow", "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor"};
+const char *voc_names[] = {"aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair", "cow", "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor"};
 
 void train_yolo(char *cfgfile, char *weightfile)
 {
 	TAT(TATPARMS);
 
-	char* train_images = "data/voc/train.txt";
-	char* backup_directory = "backup/";
+	const char* train_images = "data/voc/train.txt";
+	const char* backup_directory = "backup/";
 	srand(time(0));
 	char *base = basecfg(cfgfile);
 	printf("%s\n", base);
@@ -117,7 +117,7 @@ void validate_yolo(char *cfgfile, char *weightfile)
 	fprintf(stderr, "Learning Rate: %g, Momentum: %g, Decay: %g\n", net.learning_rate, net.momentum, net.decay);
 	srand(time(0));
 
-	char *base = "results/comp4_det_test_";
+	const char *base = "results/comp4_det_test_";
 	//list *plist = get_paths("data/voc.2007.test");
 	list* plist = get_paths("data/voc/2007_test.txt");
 	//list *plist = get_paths("data/voc.2012.test");
@@ -361,8 +361,8 @@ void run_yolo(int argc, char **argv)
 //	int dont_show = find_arg(argc, argv, "-dont_show");
 	int mjpeg_port = find_int_arg(argc, argv, "-mjpeg_port", -1);
 	int json_port = find_int_arg(argc, argv, "-json_port", -1);
-	char *out_filename = find_char_arg(argc, argv, "-out_filename", 0);
-	char *prefix = find_char_arg(argc, argv, "-prefix", 0);
+	const char *out_filename = find_char_arg(argc, argv, "-out_filename", 0);
+	const char *prefix = find_char_arg(argc, argv, "-prefix", 0);
 	float thresh = find_float_arg(argc, argv, "-thresh", .2);
 	float hier_thresh = find_float_arg(argc, argv, "-hier", .5);
 	int cam_index = find_int_arg(argc, argv, "-c", 0);

@@ -39,7 +39,7 @@ const char * size_to_IEC_string(const size_t size);
  */
 double what_time_is_it_now();
 
-int *read_map(char *filename);
+int *read_map(const char *filename);
 void shuffle(void *arr, size_t n, size_t size);
 void sorta_shuffle(void *arr, size_t n, size_t size, size_t sections);
 char *basecfg(char *cfgfile);
@@ -51,7 +51,7 @@ void read_all(int fd, char *buffer, size_t bytes);
 void write_all(int fd, char *buffer, size_t bytes);
 int read_all_fail(int fd, char *buffer, size_t bytes);
 int write_all_fail(int fd, char *buffer, size_t bytes);
-void find_replace(const char* str, char* orig, char* rep, char* output);
+void find_replace(const char* str, const char* orig, const char* rep, char* output);
 void replace_image_to_label(const char* input_path, char* output_path);
 void malloc_error(const size_t size, const char * const filename, const char * const funcname, const int line);
 void calloc_error(const size_t size, const char * const filename, const char * const funcname, const int line);
@@ -91,7 +91,7 @@ float sec(clock_t clocks);
 int find_int_arg(int argc, char **argv, const char * const arg, int def);
 float find_float_arg(int argc, char **argv, const char * const arg, float def);
 int find_arg(int argc, char* argv[], const char * const arg);
-char *find_char_arg(int argc, char **argv, char *arg, char *def);
+const char *find_char_arg(int argc, char **argv, const char *arg, const char *def);
 int sample_array(float *a, int n);
 int sample_array_custom(float *a, int n);
 void print_statistics(float *a, int n);

@@ -1,17 +1,17 @@
 #include "darknet_internal.hpp"
 #include "demo.hpp"
 
-char *coco_classes[] = {"person","bicycle","car","motorcycle","airplane","bus","train","truck","boat","traffic light","fire hydrant","stop sign","parking meter","bench","bird","cat","dog","horse","sheep","cow","elephant","bear","zebra","giraffe","backpack","umbrella","handbag","tie","suitcase","frisbee","skis","snowboard","sports ball","kite","baseball bat","baseball glove","skateboard","surfboard","tennis racket","bottle","wine glass","cup","fork","knife","spoon","bowl","banana","apple","sandwich","orange","broccoli","carrot","hot dog","pizza","donut","cake","chair","couch","potted plant","bed","dining table","toilet","tv","laptop","mouse","remote","keyboard","cell phone","microwave","oven","toaster","sink","refrigerator","book","clock","vase","scissors","teddy bear","hair drier","toothbrush"};
+const char *coco_classes[] = {"person","bicycle","car","motorcycle","airplane","bus","train","truck","boat","traffic light","fire hydrant","stop sign","parking meter","bench","bird","cat","dog","horse","sheep","cow","elephant","bear","zebra","giraffe","backpack","umbrella","handbag","tie","suitcase","frisbee","skis","snowboard","sports ball","kite","baseball bat","baseball glove","skateboard","surfboard","tennis racket","bottle","wine glass","cup","fork","knife","spoon","bowl","banana","apple","sandwich","orange","broccoli","carrot","hot dog","pizza","donut","cake","chair","couch","potted plant","bed","dining table","toilet","tv","laptop","mouse","remote","keyboard","cell phone","microwave","oven","toaster","sink","refrigerator","book","clock","vase","scissors","teddy bear","hair drier","toothbrush"};
 
 int coco_ids[] = {1,2,3,4,5,6,7,8,9,10,11,13,14,15,16,17,18,19,20,21,22,23,24,25,27,28,31,32,33,34,35,36,37,38,39,40,41,42,43,44,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,67,70,72,73,74,75,76,77,78,79,80,81,82,84,85,86,87,88,89,90};
 
 void train_coco(char *cfgfile, char *weightfile)
 {
-	//char *train_images = "/home/pjreddie/data/voc/test/train.txt";
-	//char *train_images = "/home/pjreddie/data/coco/train.txt";
-	char *train_images = "data/coco.trainval.txt";
-	//char *train_images = "data/bags.train.list";
-	char* backup_directory = "backup/";
+	//const char *train_images = "/home/pjreddie/data/voc/test/train.txt";
+	//const char *train_images = "/home/pjreddie/data/coco/train.txt";
+	const char *train_images = "data/coco.trainval.txt";
+	//const char *train_images = "data/bags.train.list";
+	const char* backup_directory = "backup/";
 	srand(time(0));
 	char *base = basecfg(cfgfile);
 	printf("%s\n", base);
@@ -131,7 +131,7 @@ void validate_coco(char *cfgfile, char *weightfile)
 	fprintf(stderr, "Learning Rate: %g, Momentum: %g, Decay: %g\n", net.learning_rate, net.momentum, net.decay);
 	srand(time(0));
 
-	char *base = "results/";
+	const char *base = "results/";
 	list *plist = get_paths("data/coco_val_5k.list");
 	//list *plist = get_paths("/home/pjreddie/data/people-art/test.txt");
 	//list *plist = get_paths("/home/pjreddie/data/voc/test/2007_test.txt");
@@ -385,8 +385,8 @@ void run_coco(int argc, char **argv)
 //	int dont_show = find_arg(argc, argv, "-dont_show");
 	int mjpeg_port = find_int_arg(argc, argv, "-mjpeg_port", -1);
 	int json_port = find_int_arg(argc, argv, "-json_port", -1);
-	char *out_filename = find_char_arg(argc, argv, "-out_filename", 0);
-	char *prefix = find_char_arg(argc, argv, "-prefix", 0);
+	const char *out_filename = find_char_arg(argc, argv, "-out_filename", 0);
+	const char *prefix = find_char_arg(argc, argv, "-prefix", 0);
 	float thresh = find_float_arg(argc, argv, "-thresh", .2);
 	float hier_thresh = find_float_arg(argc, argv, "-hier", .5);
 	int cam_index = find_int_arg(argc, argv, "-c", 0);

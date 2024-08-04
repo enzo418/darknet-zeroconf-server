@@ -6,7 +6,7 @@ void train_tag(char *cfgfile, char *weightfile, int clear)
 	srand(time(0));
 	float avg_loss = -1;
 	char *base = basecfg(cfgfile);
-	char* backup_directory = "backup/";
+	const char* backup_directory = "backup/";
 	printf("%s\n", base);
 	network net = parse_network_cfg(cfgfile);
 	if(weightfile){

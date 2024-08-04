@@ -76,8 +76,8 @@ void train_vid_rnn(char *cfgfile, char *weightfile)
 {
 	TAT(TATPARMS);
 
-	char *train_videos = "data/vid/train.txt";
-	char* backup_directory = "backup/";
+	const char *train_videos = "data/vid/train.txt";
+	const char* backup_directory = "backup/";
 	srand(time(0));
 	char *base = basecfg(cfgfile);
 	printf("%s\n", base);
@@ -130,7 +130,7 @@ void train_vid_rnn(char *cfgfile, char *weightfile)
 }
 
 
-image save_reconstruction(network net, image *init, float *feat, char *name, int i)
+image save_reconstruction(network net, image *init, float *feat, const char *name, int i)
 {
 	TAT(TATPARMS);
 

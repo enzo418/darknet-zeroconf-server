@@ -69,7 +69,7 @@ double what_time_is_it_now()
 	return (double)time.tv_sec + (double)time.tv_usec * 0.000001;
 }
 
-int *read_map(char *filename)
+int *read_map(const char *filename)
 {
 	TAT(TATPARMS);
 
@@ -174,7 +174,7 @@ float find_float_arg(int argc, char **argv, const char * const arg, float def)
 	return def;
 }
 
-char *find_char_arg(int argc, char **argv, char *arg, char *def)
+const char *find_char_arg(int argc, char **argv, const char *arg, const char *def)
 {
 	TAT(TATPARMS);
 
@@ -239,7 +239,7 @@ void pm(int M, int N, float *A)
 	printf("\n");
 }
 
-void find_replace(const char* str, char* orig, char* rep, char* output)
+void find_replace(const char* str, const char* orig, const char* rep, char* output)
 {
 	TAT(TATPARMS);
 
@@ -279,7 +279,7 @@ void trim(char *str)
 	free(buffer);
 }
 
-void find_replace_extension(char *str, char *orig, char *rep, char *output)
+void find_replace_extension(char *str, const char *orig, const char *rep, char *output)
 {
 	TAT(TATPARMS);
 

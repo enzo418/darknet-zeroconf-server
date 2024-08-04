@@ -13,7 +13,7 @@ void train_cifar(char *cfgfile, char *weightfile)
 	}
 	printf("Learning Rate: %g, Momentum: %g, Decay: %g\n", net.learning_rate, net.momentum, net.decay);
 
-	char* backup_directory = "backup/";
+	const char* backup_directory = "backup/";
 	int classes = 10;
 	int N = 50000;
 
@@ -61,7 +61,7 @@ void train_cifar_distill(char *cfgfile, char *weightfile)
 	}
 	printf("Learning Rate: %g, Momentum: %g, Decay: %g\n", net.learning_rate, net.momentum, net.decay);
 
-	char* backup_directory = "backup/";
+	const char* backup_directory = "backup/";
 	int classes = 10;
 	int N = 50000;
 
@@ -161,7 +161,7 @@ void test_cifar(char *filename, char *weightfile)
 
 void extract_cifar()
 {
-	char *labels[] = {"airplane","automobile","bird","cat","deer","dog","frog","horse","ship","truck"};
+	const char *labels[] = {"airplane","automobile","bird","cat","deer","dog","frog","horse","ship","truck"};
 	int i;
 	data train = load_all_cifar10();
 	data test = load_cifar10_data("data/cifar/cifar-10-batches-bin/test_batch.bin");

@@ -1,14 +1,14 @@
 #include "darknet_internal.hpp"
 
 
-char *dice_labels[] = {"face1","face2","face3","face4","face5","face6"};
+const char *dice_labels[] = {"face1","face2","face3","face4","face5","face6"};
 
 void train_dice(char *cfgfile, char *weightfile)
 {
 	srand(time(0));
 	float avg_loss = -1;
 	char *base = basecfg(cfgfile);
-	char* backup_directory = "backup/";
+	const char* backup_directory = "backup/";
 	printf("%s\n", base);
 	network net = parse_network_cfg(cfgfile);
 	if(weightfile){
@@ -17,7 +17,7 @@ void train_dice(char *cfgfile, char *weightfile)
 	printf("Learning Rate: %g, Momentum: %g, Decay: %g\n", net.learning_rate, net.momentum, net.decay);
 	int imgs = 1024;
 	int i = *net.seen/imgs;
-	char **labels = dice_labels;
+	const char **labels = dice_labels;
 	list *plist = get_paths("data/dice/dice.train.list");
 	char **paths = (char **)list_to_array(plist);
 	printf("%d\n", plist->size);
@@ -51,7 +51,7 @@ void validate_dice(char *filename, char *weightfile)
 	}
 	srand(time(0));
 
-	char **labels = dice_labels;
+	const char **labels = dice_labels;
 	list *plist = get_paths("data/dice/dice.val.list");
 
 	char **paths = (char **)list_to_array(plist);
@@ -73,7 +73,7 @@ void test_dice(char *cfgfile, char *weightfile, char *filename)
 	set_batch_network(&net, 1);
 	srand(2222222);
 	int i = 0;
-	char **names = dice_labels;
+	const char **names = dice_labels;
 	char buff[256];
 	char *input = buff;
 	int indexes[6];
