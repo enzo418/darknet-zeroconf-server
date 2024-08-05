@@ -97,6 +97,7 @@ struct context_t {
 
     float prob_threshold {0.25};  // probability threshold for detection
     bool dontdraw_bbox {false};   // don't draw bounding boxes
+    bool log_results {false};     // log results
 };
 
 inline void recalculate_bbox_coordinates(box& b, int cols, int rows) {

@@ -108,6 +108,10 @@ ENDIF ()
 target_compile_definitions(server PRIVATE ${uv_defines})
 
 # uWebsocket
+IF (WIN32)
+	set(BUILD_SHARED_LIBS FALSE)
+endif()
+
 add_subdirectory(uSockets)
 target_include_directories(server PRIVATE uSockets/src)
 

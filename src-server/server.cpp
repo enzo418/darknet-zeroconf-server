@@ -117,8 +117,8 @@ void detect(context_t& ctx, cv::Mat* img, DetectionSingleResult** out_results,
         network_predict(ctx.net, in_s.data);
     }
 
-    if (!ctx.dontdraw_bbox) {
-        printf("Predicted in %4.2f milli-seconds.\n",
+    if (!ctx.dontdraw_bbox || ctx.log_results) {
+        printf("\tPredicted in %4.2f milli-seconds.\n",
                sec(clock() - time) * 1000);
     }
 
@@ -180,11 +180,13 @@ void detect(context_t& ctx, cv::Mat* img, DetectionSingleResult** out_results,
             (*out_results)[out_num_results].w = b.w;
             (*out_results)[out_num_results].h = b.h;
 
-            if (!ctx.dontdraw_bbox) {
+			if (ctx.log_results) {
                 // format: [class_id] class_name prob x y w h
-                printf("[%d] %s: %.0f%% %2.1f %2.1f %2.1f %2.1f\n", class_id,
+                printf("\t[%d] %s: %.0f%% %2.1f %2.1f %2.1f %2.1f\n", class_id,
                        ctx.names[class_id], prob * 100, b.x, b.y, b.w, b.h);
+            }
 
+            if (!ctx.dontdraw_bbox) {
                 cv::rectangle(*img, cv::Rect(b.x, b.y, b.w, b.h),
                               cv::Scalar(0, 255, 0), 2);
                 cv::putText(*img, ctx.names[class_id], cv::Point(b.x, b.y - 5),
@@ -471,6 +473,11 @@ void* image_detect_in_thread(void* ptr) {
             image_queue.pop();
         }
 
+		if (ctx->log_results) {
+            printf("[%lu] Processing image %d in group %d\n", img_received.socket_id,
+				   				   img_received.image_number, img_received.group_number);
+		}
+
         DetectionSingleResult* results = nullptr;
         int num_results = 0;
 
@@ -540,7 +547,8 @@ void process_image(snowflake socket_id, uint8_t* image_data,
     }
 
     if (!img.empty()) {
-        // printf("Image decoded\n");
+        /*printf("Image decoded    n=%d   g=%d\n", image_number,
+               group_number);*/
 
         ImageReceived img_received;
         img_received.img = std::move(img);
@@ -601,15 +609,15 @@ struct us_socket_t* on_data(us_socket_t* s, char* data, int length) {
                     ds->buffer_size = header.data_length;
                 }
 
-                // printf("Received header: version=%d, image_number=%d, "
-                // "group_number=%d, data_length=%d, image_type=%d, "
-                // "width=%d, height=%d\n",
-                // header.version, header.image_number, header.group_number,
-                // header.data_length, header.image_type, header.width,
-                // header.height);
+               /*  printf("Received header: version=%d, image_number=%d, "
+                 "group_number=%d, data_length=%d, image_type=%d, "
+                 "width=%d, height=%d\n",
+                 header.version, header.image_number, header.group_number,
+                 header.data_length, header.image_type, header.width,
+                 header.height);*/
             } else {
-                // printf("Need %d more bytes for header\n",
-                //        (uint32_t)header_size - (uint32_t)bytes_received);
+               /*  printf("Need %d more bytes for header\n",
+                        (uint32_t)header_size - (uint32_t)bytes_received);*/
             }
         } else {
             size_t bytes_to_copy = std::min(header.data_length - bytes_received,
@@ -890,6 +898,7 @@ int main(int argc, char** argv) {
     }
 
     int dont_show = find_arg(argc, argv, "-dont_show");
+    int log_results = find_arg(argc, argv, "-log_results");
     int profile = find_arg(argc, argv, "-profile");
     int max_fps = find_int_arg(argc, argv, "-max_fps", 60);
     int cam_index = find_int_arg(argc, argv, "-c", 0);
@@ -902,6 +911,7 @@ int main(int argc, char** argv) {
     load_model(ctx, data, cfg, weights);
 
     ctx.dontdraw_bbox = dont_show;
+	ctx.log_results = log_results;
 
     if (strcmp(argv[1], "demo") == 0) {
         demo_classifier(ctx, cam_index, filename, max_fps, (bool)profile);
