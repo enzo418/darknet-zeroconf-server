@@ -650,7 +650,7 @@ struct us_socket_t* on_detect_socket_writable(struct us_socket_t* s) {
         char* new_buffer = (char*)malloc(ds->length - written);
 
         if (ds->length > 0 && ds->backpressure) {
-            memcpy(new_buffer, ds->backpressure, ds->length - written);
+            memcpy(new_buffer, ds->backpressure + written, ds->length - written);
             free(ds->backpressure);
         }
 
