@@ -658,6 +658,7 @@ struct us_socket_t* on_detect_socket_writable(struct us_socket_t* s) {
         ds->length -= written;
     } else {
         free(ds->backpressure);
+		ds->backpressure = nullptr;
         ds->length = 0;
     }
 
